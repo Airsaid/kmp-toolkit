@@ -1,0 +1,347 @@
+<resources>
+  <string name="app_name">kmp-toolkit</string>
+
+  <string name="demo_app_lifecycle_title">App lifecycle monitor</string>
+  <string name="demo_app_lifecycle_description">Observe foreground, visibility, and cold/warm start state.</string>
+  <string name="demo_app_lifecycle_code"><![CDATA[val monitor = Toolkit.appLifecycleMonitor()
+monitor.startMonitoring()
+scope.launch {
+  monitor.observeAppLifecycle().collect { status ->
+    if (status.isInForeground) {
+
+    }
+  }
+}
+val status = monitor.getCurrentStatus()
+if (status.isFirstLaunch && status.lastStartType == AppStartType.COLD) {
+
+}
+monitor.stopMonitoring()]]></string>
+  <string name="demo_app_info_title">App information</string>
+  <string name="demo_app_info_description">Read the app package name, version, and build number.</string>
+  <string name="demo_app_info_code"><![CDATA[val info = Toolkit.appInfo()
+println(info.packageName)
+println(info.versionName)
+println(info.buildNumber)]]></string>
+  <string name="demo_clipboard_title">Clipboard read, write, and observe</string>
+  <string name="demo_clipboard_description">Write, read, and observe clipboard changes across multiple content types.</string>
+  <string name="demo_clipboard_code"><![CDATA[val clipboard = Toolkit.clipboard()
+clipboard.setText("hello")
+clipboard.setContents(
+  listOf(
+    ClipboardContent.RichText(
+      text = "<b>Hello</b>",
+      format = RichTextFormat.HTML,
+      plainText = "Hello",
+    ),
+    ClipboardContent.Uri("https://example.com"),
+  )
+)
+val snapshot = clipboard.getSnapshot()
+val text = clipboard.getText()
+scope.launch {
+  clipboard.observeClipboard().collect { latest ->
+
+  }
+}
+clipboard.clear()]]></string>
+  <string name="demo_haptic_title">Haptic feedback</string>
+  <string name="demo_haptic_description">Trigger selection, success, warning, and error feedback.</string>
+  <string name="demo_haptic_code"><![CDATA[val haptics = Toolkit.hapticFeedback()
+if (haptics.isSupported()) {
+  haptics.perform(HapticFeedbackType.SELECTION)
+}
+haptics.perform(HapticFeedbackType.SUCCESS)
+haptics.perform(HapticFeedbackType.WARNING)
+haptics.perform(HapticFeedbackType.ERROR)]]></string>
+  <string name="demo_network_title">Network status monitor</string>
+  <string name="demo_network_description">Observe network connectivity and connection type changes.</string>
+  <string name="demo_network_code"><![CDATA[val monitor = Toolkit.networkMonitor()
+monitor.startMonitoring()
+scope.launch {
+  monitor.observeNetworkStatus().collect { status ->
+    if (!status.isConnected) {
+
+    }
+  }
+}
+val status = monitor.getCurrentNetworkStatus()
+println(status.isConnected)
+println(status.type)
+val isWifi = status.type == NetworkType.WIFI
+monitor.stopMonitoring()]]></string>
+  <string name="demo_sensor_title">Sensor monitor</string>
+  <string name="demo_sensor_description">Use SensorToolkit to observe accelerometer, gyroscope, device motion, and other sensors.</string>
+  <string name="demo_sensor_code"><![CDATA[val sensors = Toolkit.sensorToolkit()
+if (sensors.isAvailable(SensorType.ACCELEROMETER).isAvailable) {
+  scope.launch {
+    sensors.observe(
+      type = SensorType.ACCELEROMETER,
+      options = SensorOptions(
+        samplingRateHz = 50,
+      ),
+    ).collect { event ->
+      val x = event.values[0]
+      val y = event.values[1]
+      val z = event.values[2]
+    }
+  }
+}
+val snapshot = sensors.getSnapshot(SensorType.GYROSCOPE)]]></string>
+  <string name="demo_app_navigator_title">App navigation</string>
+  <string name="demo_app_navigator_description">Open system settings, app details, notification settings, email, dialer, SMS, app store details, and links.</string>
+  <string name="demo_app_navigator_code"><![CDATA[val navigator = Toolkit.appNavigator()
+val openedSystem = navigator.navigateToSystemSettings()
+val openedApp = navigator.navigateToAppDetails()
+val openedNotifications = navigator.navigateToNotificationSettings()
+val openedEmail = navigator.navigateToEmail(
+  to = "support@example.com",
+  subject = "Feedback",
+  body = "Please describe your issue",
+)
+val openedDial = navigator.navigateToDial("10086")
+val openedSms = navigator.navigateToSms(
+  phone = "10086",
+  body = "Hello",
+)
+val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
+val openedUrl = navigator.navigateToUrl("https://example.com")]]></string>
+  <string name="demo_file_title">File picking and saving</string>
+  <string name="demo_file_description">Pick a file, pick a directory, pick multiple files, and save a file.</string>
+  <string name="demo_file_code"><![CDATA[val files = Toolkit.fileToolkit()
+val picked = files.pickFile(
+  FilePickerOptions(
+    title = "Pick file",
+    type = PlatformFileType.File(),
+  )
+)
+val selected = files.pickFiles(
+  FilePickerOptions(
+    title = "Pick files",
+    mode = FilePickerMode.Multiple(maxItems = 3),
+  )
+)
+val directory = files.pickDirectory(
+  DirectoryPickerOptions(title = "Pick directory")
+)
+val saved = files.saveFile(
+  FileSaveOptions(
+    suggestedName = "document",
+    extension = "txt",
+  )
+)]]></string>
+  <string name="demo_share_title">System share sheet</string>
+  <string name="demo_share_description">Open the system share sheet to share text, links, and images.</string>
+  <string name="demo_share_code"><![CDATA[Toolkit.shareToolkit().share(
+  contents = listOf(
+    ShareContent.Text("hello"),
+    ShareContent.Url("https://example.com"),
+  ),
+  options = ShareOptions(
+    title = "Share to",
+    excludedActivities = listOf(
+      ShareExcludedActivity.COPY_TO_PASTEBOARD,
+    ),
+  ),
+)]]></string>
+  <string name="demo_device_info_title">Device information</string>
+  <string name="demo_device_info_description">Read device model, system information, screen metrics, and language preferences.</string>
+  <string name="demo_device_info_code"><![CDATA[val device = Toolkit.deviceInfo()
+println(device.deviceModel)
+println(device.systemName)
+println(device.systemVersion)
+println(device.systemVersionCode)
+println(device.manufacturer.manufacturer)
+println(device.manufacturer.brand)
+println(device.deviceType.isTablet)
+println(device.deviceType.isEmulator)
+println(device.screen.widthPx)
+println(device.screen.heightPx)
+println(device.screen.density)
+println(device.timeZone.id)
+println(device.timeZone.offsetMinutes)
+println(device.locale.current.tag)
+println(device.locale.preferred)]]></string>
+  <string name="demo_platform_title">Platform detection</string>
+  <string name="demo_platform_description">Detect the Platform type from common code.</string>
+  <string name="demo_platform_code"><![CDATA[when (Toolkit.platformType()) {
+  PlatformType.ANDROID -> {
+
+  }
+  PlatformType.IOS -> {
+
+  }
+}]]></string>
+  <string name="demo_keyboard_title">Keyboard status monitor</string>
+  <string name="demo_keyboard_description">Observe soft keyboard visibility and height changes.</string>
+  <string name="demo_keyboard_code"><![CDATA[val keyboardMonitor = Toolkit.keyboardMonitor()
+keyboardMonitor.startMonitoring()
+scope.launch {
+  keyboardMonitor.observeKeyboardStatus().collect { status ->
+    if (status.isVisible) {
+
+    }
+  }
+}
+val status = keyboardMonitor.getCurrentStatus()
+println(status.isVisible)
+println(status.heightPx)
+keyboardMonitor.stopMonitoring()]]></string>
+
+  <string name="action_start_monitoring">Start monitoring</string>
+  <string name="action_stop_monitoring">Stop monitoring</string>
+  <string name="action_clear">Clear</string>
+  <string name="error_format">Error: %1$s</string>
+  <string name="result_format">Result: %1$s</string>
+
+  <string name="app_lifecycle_status_format">Foreground: %1$s, visible: %2$s, first launch: %3$s, cold starts: %4$s, warm starts: %5$s, latest type: %6$s</string>
+
+  <string name="action_read_app_info">Read app info</string>
+  <string name="app_info_package_name">Package name</string>
+  <string name="app_info_app_name">App name</string>
+  <string name="app_info_version_name">Version name</string>
+  <string name="app_info_build_number">Build number</string>
+  <string name="app_info_build_type">Build type</string>
+  <string name="app_info_build_time">Build time</string>
+
+  <string name="clipboard_input_label">Content to write</string>
+  <string name="clipboard_default_text">Toolkit Demo</string>
+  <string name="action_write">Write</string>
+  <string name="action_write_rich_text_uri">Write rich text and URI</string>
+  <string name="action_write_image">Write image</string>
+  <string name="action_read">Read</string>
+  <string name="action_read_image">Read image</string>
+  <string name="clipboard_text_status">Clipboard text: %1$s</string>
+  <string name="clipboard_image_status">Clipboard image: %1$s</string>
+  <string name="clipboard_contents_status">Clipboard contents: %1$s</string>
+  <string name="clipboard_content_empty">Empty</string>
+  <string name="clipboard_content_text">Text</string>
+  <string name="clipboard_content_rich_text">Rich text (%1$s)</string>
+  <string name="clipboard_content_uri">URI</string>
+  <string name="clipboard_content_image">Image</string>
+  <string name="image_not_found">Image not found</string>
+  <string name="app_logo_not_found">App logo not found</string>
+  <string name="image_info_format">Image bytes: %1$s, type: %2$s</string>
+
+  <string name="haptic_selection">Selection</string>
+  <string name="haptic_success">Success</string>
+  <string name="haptic_warning">Warning</string>
+  <string name="haptic_error">Error</string>
+
+  <string name="network_wifi_connected">WiFi connected</string>
+  <string name="network_cellular_connected">Cellular data</string>
+  <string name="network_ethernet_connected">Ethernet connected</string>
+  <string name="network_vpn_connected">VPN connected</string>
+  <string name="network_not_connected">No network connection</string>
+  <string name="network_checking">Checking...</string>
+
+  <string name="sensor_select_format">Select sensor: %1$s</string>
+  <string name="sensor_current_format">Current sensor: %1$s</string>
+  <string name="sensor_availability_format">Availability: %1$s</string>
+  <string name="sensor_sampling_status_format">Sampling status: %1$s</string>
+  <string name="sensor_sampling_observing">Observing</string>
+  <string name="sensor_sampling_not_observing">Not observing</string>
+  <string name="sensor_available">Available</string>
+  <string name="sensor_unavailable">Unavailable</string>
+  <string name="sensor_unavailable_reason">Unavailable: %1$s</string>
+  <string name="sensor_axis_value_format">%1$s: %2$s</string>
+  <string name="sensor_accelerometer">Accelerometer</string>
+  <string name="sensor_gyroscope">Gyroscope</string>
+  <string name="sensor_magnetometer">Magnetometer</string>
+  <string name="sensor_barometer">Barometer</string>
+  <string name="sensor_step_counter">Step counter</string>
+  <string name="sensor_step_detector">Step detector</string>
+  <string name="sensor_device_motion">Device motion</string>
+  <string name="sensor_light">Light</string>
+  <string name="sensor_proximity">Proximity</string>
+  <string name="sensor_gravity">Gravity</string>
+  <string name="sensor_linear_acceleration">Linear acceleration</string>
+  <string name="sensor_rotation_vector">Rotation vector</string>
+  <string name="sensor_game_rotation_vector">Game rotation vector</string>
+  <string name="sensor_geomagnetic_rotation_vector">Geomagnetic rotation vector</string>
+  <string name="sensor_tilt_detector">Tilt detector</string>
+  <string name="sensor_significant_motion">Significant motion</string>
+  <string name="sensor_motion_detect">Motion detect</string>
+  <string name="sensor_stationary_detect">Stationary detect</string>
+  <string name="sensor_ambient_temperature">Ambient temperature</string>
+  <string name="sensor_relative_humidity">Relative humidity</string>
+
+  <string name="keyboard_input_label">Type to show the soft keyboard</string>
+  <string name="keyboard_status_format">Visible: %1$s, height: %2$s px</string>
+
+  <string name="action_system_settings">System settings</string>
+  <string name="action_app_details">App details</string>
+  <string name="action_notification_settings">Notification settings</string>
+  <string name="action_send_email">Send email</string>
+  <string name="action_dial">Dial</string>
+  <string name="action_sms">SMS</string>
+  <string name="action_app_store_details">App store details</string>
+  <string name="action_open_url">Open URL</string>
+  <string name="email_subject_feedback">Feedback</string>
+  <string name="email_body_describe_issue">Please describe your issue</string>
+  <string name="sms_body_hello">Hello</string>
+
+  <string name="file_picker_title_file">Pick file</string>
+  <string name="file_picker_title_files">Pick files</string>
+  <string name="file_picker_title_directory">Pick directory</string>
+  <string name="action_pick_file">Pick file</string>
+  <string name="action_pick_files">Pick files</string>
+  <string name="action_pick_directory">Pick directory</string>
+  <string name="action_save_file">Save file</string>
+  <string name="file_not_run">Not run</string>
+  <string name="file_selected_file">Selected file</string>
+  <string name="file_selected_directory">Selected directory</string>
+  <string name="file_saved_file">Saved file</string>
+  <string name="file_no_file_selected">No file selected</string>
+  <string name="file_no_directory_selected">No directory selected</string>
+  <string name="file_not_saved">No file saved</string>
+  <string name="file_message_with_name">%1$s: %2$s</string>
+  <plurals name="file_selected_count">
+    <item quantity="one">Selected %1$d file</item>
+    <item quantity="other">Selected %1$d files</item>
+  </plurals>
+  <string name="file_info_status">File info: %1$s</string>
+  <string name="file_info_read_failed">Failed to read file info: %1$s</string>
+  <string name="file_multi_select_result">Multiple selection: %1$s</string>
+  <string name="file_info_format">Name: %1$s, size: %2$s, MIME type: %3$s, exists: %4$s, directory: %5$s, path: %6$s</string>
+  <string name="unknown_error">Unknown error</string>
+
+  <string name="share_default_text">Share content</string>
+  <string name="share_text_label">Text</string>
+  <string name="share_url_label">Link</string>
+  <string name="share_title">Share to</string>
+  <string name="action_share_text">Share text</string>
+  <string name="action_share_url">Share link</string>
+  <string name="action_share_image">Share image</string>
+  <string name="action_share_combination">Share combination</string>
+  <string name="share_text_success">Text shared</string>
+  <string name="share_text_failure">Text share failed</string>
+  <string name="share_url_success">Link shared</string>
+  <string name="share_url_failure">Link share failed</string>
+  <string name="share_image_success">Image shared</string>
+  <string name="share_image_failure">Image share failed</string>
+  <string name="share_combination_success">Combination shared</string>
+  <string name="share_combination_failure">Combination share failed</string>
+
+  <string name="action_read_device_info">Read device info</string>
+  <string name="device_model">Model</string>
+  <string name="device_system">System</string>
+  <string name="device_system_version_code">System version code</string>
+  <string name="device_manufacturer">Manufacturer</string>
+  <string name="device_brand">Brand</string>
+  <string name="device_tablet">Tablet</string>
+  <string name="device_emulator">Emulator</string>
+  <string name="device_screen_px">Screen (px)</string>
+  <string name="device_screen_dp">Screen (dp)</string>
+  <string name="device_density">Density</string>
+  <string name="device_orientation">Orientation</string>
+  <string name="device_landscape">Landscape</string>
+  <string name="device_portrait">Portrait</string>
+  <string name="device_time_zone">Time zone</string>
+  <string name="device_time_zone_value">%1$s (%2$s minutes)</string>
+  <string name="device_current_language">Current language</string>
+  <string name="device_preferred_languages">Preferred languages</string>
+
+  <string name="action_read_platform_type">Read platform type</string>
+  <string name="platform_current_format">Current platform: %1$s</string>
+</resources>

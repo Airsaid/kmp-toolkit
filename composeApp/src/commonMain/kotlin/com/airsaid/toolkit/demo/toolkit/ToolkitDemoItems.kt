@@ -1,10 +1,49 @@
 package com.airsaid.toolkit.demo.toolkit
 
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.demo_app_info_code
+import com.airsaid.toolkit.demo.resources.demo_app_info_description
+import com.airsaid.toolkit.demo.resources.demo_app_info_title
+import com.airsaid.toolkit.demo.resources.demo_app_lifecycle_code
+import com.airsaid.toolkit.demo.resources.demo_app_lifecycle_description
+import com.airsaid.toolkit.demo.resources.demo_app_lifecycle_title
+import com.airsaid.toolkit.demo.resources.demo_app_navigator_code
+import com.airsaid.toolkit.demo.resources.demo_app_navigator_description
+import com.airsaid.toolkit.demo.resources.demo_app_navigator_title
+import com.airsaid.toolkit.demo.resources.demo_clipboard_code
+import com.airsaid.toolkit.demo.resources.demo_clipboard_description
+import com.airsaid.toolkit.demo.resources.demo_clipboard_title
+import com.airsaid.toolkit.demo.resources.demo_device_info_code
+import com.airsaid.toolkit.demo.resources.demo_device_info_description
+import com.airsaid.toolkit.demo.resources.demo_device_info_title
+import com.airsaid.toolkit.demo.resources.demo_file_code
+import com.airsaid.toolkit.demo.resources.demo_file_description
+import com.airsaid.toolkit.demo.resources.demo_file_title
+import com.airsaid.toolkit.demo.resources.demo_haptic_code
+import com.airsaid.toolkit.demo.resources.demo_haptic_description
+import com.airsaid.toolkit.demo.resources.demo_haptic_title
+import com.airsaid.toolkit.demo.resources.demo_keyboard_code
+import com.airsaid.toolkit.demo.resources.demo_keyboard_description
+import com.airsaid.toolkit.demo.resources.demo_keyboard_title
+import com.airsaid.toolkit.demo.resources.demo_network_code
+import com.airsaid.toolkit.demo.resources.demo_network_description
+import com.airsaid.toolkit.demo.resources.demo_network_title
+import com.airsaid.toolkit.demo.resources.demo_platform_code
+import com.airsaid.toolkit.demo.resources.demo_platform_description
+import com.airsaid.toolkit.demo.resources.demo_platform_title
+import com.airsaid.toolkit.demo.resources.demo_sensor_code
+import com.airsaid.toolkit.demo.resources.demo_sensor_description
+import com.airsaid.toolkit.demo.resources.demo_sensor_title
+import com.airsaid.toolkit.demo.resources.demo_share_code
+import com.airsaid.toolkit.demo.resources.demo_share_description
+import com.airsaid.toolkit.demo.resources.demo_share_title
+import org.jetbrains.compose.resources.StringResource
+
 internal data class ToolkitDemoItem(
-  val title: String,
+  val titleRes: StringResource,
   val route: String,
-  val description: String,
-  val code: String,
+  val descriptionRes: StringResource,
+  val codeRes: StringResource,
 )
 
 internal object ToolkitDemoItems {
@@ -23,250 +62,76 @@ internal object ToolkitDemoItems {
 
   val all: List<ToolkitDemoItem> = listOf(
     ToolkitDemoItem(
-      title = "应用生命周期监听",
+      titleRes = Res.string.demo_app_lifecycle_title,
       route = AppLifecycleRoute,
-      description = "监听前后台与冷/热启动状态。",
-      code = """
-        val monitor = Toolkit.appLifecycleMonitor()
-        monitor.startMonitoring()
-        scope.launch {
-          monitor.observeAppLifecycle().collect { status ->
-            if (status.isInForeground) {
-
-            }
-          }
-        }
-        val status = monitor.getCurrentStatus()
-        if (status.isFirstLaunch && status.lastStartType == AppStartType.COLD) {
-
-        }
-        monitor.stopMonitoring()
-      """.trimIndent(),
+      descriptionRes = Res.string.demo_app_lifecycle_description,
+      codeRes = Res.string.demo_app_lifecycle_code,
     ),
     ToolkitDemoItem(
-      title = "应用信息获取",
+      titleRes = Res.string.demo_app_info_title,
       route = AppInfoRoute,
-      description = "读取应用包名、版本与构建号。",
-      code = """
-        val info = Toolkit.appInfo()
-        println(info.packageName)
-        println(info.versionName)
-        println(info.buildNumber)
-      """.trimIndent(),
+      descriptionRes = Res.string.demo_app_info_description,
+      codeRes = Res.string.demo_app_info_code,
     ),
     ToolkitDemoItem(
-      title = "剪贴板读写与监听",
+      titleRes = Res.string.demo_clipboard_title,
       route = ClipboardRoute,
-      description = "写入、读取与监听剪贴板多类型内容变化。",
-      code = """
-        val clipboard = Toolkit.clipboard()
-        clipboard.setText("hello")
-        clipboard.setContents(
-          listOf(
-            ClipboardContent.RichText(
-              text = "<b>Hello</b>",
-              format = RichTextFormat.HTML,
-              plainText = "Hello",
-            ),
-            ClipboardContent.Uri("https://example.com"),
-          )
-        )
-        val snapshot = clipboard.getSnapshot()
-        val text = clipboard.getText()
-        scope.launch {
-          clipboard.observeClipboard().collect { latest ->
-
-          }
-        }
-        clipboard.clear()
-      """.trimIndent(),
+      descriptionRes = Res.string.demo_clipboard_description,
+      codeRes = Res.string.demo_clipboard_code,
     ),
     ToolkitDemoItem(
-      title = "触感反馈",
+      titleRes = Res.string.demo_haptic_title,
       route = HapticRoute,
-      description = "触发成功、警告、错误与选择反馈。",
-      code = """
-        val haptics = Toolkit.hapticFeedback()
-        if (haptics.isSupported()) {
-          haptics.perform(HapticFeedbackType.SELECTION)
-        }
-        haptics.perform(HapticFeedbackType.SUCCESS)
-        haptics.perform(HapticFeedbackType.WARNING)
-        haptics.perform(HapticFeedbackType.ERROR)
-      """.trimIndent(),
+      descriptionRes = Res.string.demo_haptic_description,
+      codeRes = Res.string.demo_haptic_code,
     ),
     ToolkitDemoItem(
-      title = "网络状态监听",
+      titleRes = Res.string.demo_network_title,
       route = NetworkRoute,
-      description = "监听网络连接状态与类型变化。",
-      code = """
-        val monitor = Toolkit.networkMonitor()
-        monitor.startMonitoring()
-        scope.launch {
-          monitor.observeNetworkStatus().collect { status ->
-            if (!status.isConnected) {
-
-            }
-          }
-        }
-        val status = monitor.getCurrentNetworkStatus()
-        println(status.isConnected)
-        println(status.type)
-        val isWifi = status.type == NetworkType.WIFI
-        monitor.stopMonitoring()
-      """.trimIndent(),
+      descriptionRes = Res.string.demo_network_description,
+      codeRes = Res.string.demo_network_code,
     ),
     ToolkitDemoItem(
-      title = "传感器监听",
+      titleRes = Res.string.demo_sensor_title,
       route = SensorRoute,
-      description = "使用 SensorToolkit 监听加速度计、陀螺仪与设备姿态等传感器。",
-      code = """
-        val sensors = Toolkit.sensorToolkit()
-        if (sensors.isAvailable(SensorType.ACCELEROMETER).isAvailable) {
-          scope.launch {
-            sensors.observe(
-              type = SensorType.ACCELEROMETER,
-              options = SensorOptions(
-                samplingRateHz = 50,
-              ),
-            ).collect { event ->
-              val x = event.values[0]
-              val y = event.values[1]
-              val z = event.values[2]
-            }
-          }
-        }
-        val snapshot = sensors.getSnapshot(SensorType.GYROSCOPE)
-      """.trimIndent(),
+      descriptionRes = Res.string.demo_sensor_description,
+      codeRes = Res.string.demo_sensor_code,
     ),
     ToolkitDemoItem(
-      title = "应用级跳转",
+      titleRes = Res.string.demo_app_navigator_title,
       route = AppNavigatorRoute,
-      description = "跳转系统设置、应用详情、通知设置、邮件/拨号/短信、应用商店详情与链接。",
-      code = """
-        val navigator = Toolkit.appNavigator()
-        val openedSystem = navigator.navigateToSystemSettings()
-        val openedApp = navigator.navigateToAppDetails()
-        val openedNotifications = navigator.navigateToNotificationSettings()
-        val openedEmail = navigator.navigateToEmail(
-          to = "support@example.com",
-          subject = "反馈",
-          body = "请描述你的问题",
-        )
-        val openedDial = navigator.navigateToDial("10086")
-        val openedSms = navigator.navigateToSms(
-          phone = "10086",
-          body = "你好",
-        )
-        val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
-        val openedUrl = navigator.navigateToUrl("https://example.com")
-      """.trimIndent(),
+      descriptionRes = Res.string.demo_app_navigator_description,
+      codeRes = Res.string.demo_app_navigator_code,
     ),
     ToolkitDemoItem(
-      title = "文件选择与保存",
+      titleRes = Res.string.demo_file_title,
       route = FileRoute,
-      description = "选择文件/目录、多选文件与保存文件。",
-      code = """
-        val files = Toolkit.fileToolkit()
-        val picked = files.pickFile(
-          FilePickerOptions(
-            title = "选择文件",
-            type = PlatformFileType.File(),
-          )
-        )
-        val selected = files.pickFiles(
-          FilePickerOptions(
-            title = "多选文件",
-            mode = FilePickerMode.Multiple(maxItems = 3),
-          )
-        )
-        val directory = files.pickDirectory(
-          DirectoryPickerOptions(title = "选择目录")
-        )
-        val saved = files.saveFile(
-          FileSaveOptions(
-            suggestedName = "document",
-            extension = "txt",
-          )
-        )
-      """.trimIndent(),
+      descriptionRes = Res.string.demo_file_description,
+      codeRes = Res.string.demo_file_code,
     ),
     ToolkitDemoItem(
-      title = "系统分享",
+      titleRes = Res.string.demo_share_title,
       route = ShareRoute,
-      description = "调起系统分享面板，分享文本、链接与图片。",
-      code = """
-        Toolkit.shareToolkit().share(
-          contents = listOf(
-            ShareContent.Text("hello"),
-            ShareContent.Url("https://example.com"),
-          ),
-          options = ShareOptions(
-            title = "分享到",
-            excludedActivities = listOf(
-              ShareExcludedActivity.COPY_TO_PASTEBOARD,
-            ),
-          ),
-        )
-      """.trimIndent(),
+      descriptionRes = Res.string.demo_share_description,
+      codeRes = Res.string.demo_share_code,
     ),
     ToolkitDemoItem(
-      title = "设备信息获取",
+      titleRes = Res.string.demo_device_info_title,
       route = DeviceInfoRoute,
-      description = "读取设备型号、系统信息、屏幕与语言偏好。",
-      code = """
-        val device = Toolkit.deviceInfo()
-        println(device.deviceModel)
-        println(device.systemName)
-        println(device.systemVersion)
-        println(device.systemVersionCode)
-        println(device.manufacturer.manufacturer)
-        println(device.manufacturer.brand)
-        println(device.deviceType.isTablet)
-        println(device.deviceType.isEmulator)
-        println(device.screen.widthPx)
-        println(device.screen.heightPx)
-        println(device.screen.density)
-        println(device.timeZone.id)
-        println(device.timeZone.offsetMinutes)
-        println(device.locale.current.tag)
-        println(device.locale.preferred)
-      """.trimIndent(),
+      descriptionRes = Res.string.demo_device_info_description,
+      codeRes = Res.string.demo_device_info_code,
     ),
     ToolkitDemoItem(
-      title = "平台判断",
+      titleRes = Res.string.demo_platform_title,
       route = PlatformRoute,
-      description = "在 common 中判断 Platform 类型。",
-      code = """
-        when (Toolkit.platformType()) {
-          PlatformType.ANDROID -> {
-
-          }
-          PlatformType.IOS -> {
-
-          }
-        }
-      """.trimIndent(),
+      descriptionRes = Res.string.demo_platform_description,
+      codeRes = Res.string.demo_platform_code,
     ),
     ToolkitDemoItem(
-      title = "键盘状态监听",
+      titleRes = Res.string.demo_keyboard_title,
       route = KeyboardRoute,
-      description = "监听软键盘可见性与高度变化。",
-      code = """
-        val keyboardMonitor = Toolkit.keyboardMonitor()
-        keyboardMonitor.startMonitoring()
-        scope.launch {
-          keyboardMonitor.observeKeyboardStatus().collect { status ->
-            if (status.isVisible) {
-
-            }
-          }
-        }
-        val status = keyboardMonitor.getCurrentStatus()
-        println(status.isVisible)
-        println(status.heightPx)
-        keyboardMonitor.stopMonitoring()
-      """.trimIndent(),
+      descriptionRes = Res.string.demo_keyboard_description,
+      codeRes = Res.string.demo_keyboard_code,
     ),
   )
 }

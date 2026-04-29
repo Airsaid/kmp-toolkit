@@ -16,6 +16,14 @@ import androidx.compose.ui.unit.dp
 import com.airsaid.toolkit.NetworkStatus
 import com.airsaid.toolkit.NetworkType
 import com.airsaid.toolkit.Toolkit
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.network_cellular_connected
+import com.airsaid.toolkit.demo.resources.network_checking
+import com.airsaid.toolkit.demo.resources.network_ethernet_connected
+import com.airsaid.toolkit.demo.resources.network_not_connected
+import com.airsaid.toolkit.demo.resources.network_vpn_connected
+import com.airsaid.toolkit.demo.resources.network_wifi_connected
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * @author airsaid
@@ -55,12 +63,12 @@ private fun NetworkStatusBar(status: NetworkStatus) {
   }
 
   val text = when (status.type) {
-    NetworkType.WIFI -> "WiFi 已连接"
-    NetworkType.CELLULAR -> "移动数据"
-    NetworkType.ETHERNET -> "有线连接"
-    NetworkType.VPN -> "VPN 连接"
-    NetworkType.NONE -> "无网络连接"
-    NetworkType.UNKNOWN -> "检测中..."
+    NetworkType.WIFI -> stringResource(Res.string.network_wifi_connected)
+    NetworkType.CELLULAR -> stringResource(Res.string.network_cellular_connected)
+    NetworkType.ETHERNET -> stringResource(Res.string.network_ethernet_connected)
+    NetworkType.VPN -> stringResource(Res.string.network_vpn_connected)
+    NetworkType.NONE -> stringResource(Res.string.network_not_connected)
+    NetworkType.UNKNOWN -> stringResource(Res.string.network_checking)
   }
 
   Surface(

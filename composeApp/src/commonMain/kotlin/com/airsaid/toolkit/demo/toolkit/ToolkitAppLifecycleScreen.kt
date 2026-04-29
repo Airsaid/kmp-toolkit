@@ -16,6 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.airsaid.toolkit.AppLifecycleStatus
 import com.airsaid.toolkit.Toolkit
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.action_start_monitoring
+import com.airsaid.toolkit.demo.resources.action_stop_monitoring
+import com.airsaid.toolkit.demo.resources.app_lifecycle_status_format
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -34,8 +39,8 @@ fun ToolkitAppLifecycleScreen(modifier: Modifier = Modifier) {
   }
 
   ToolkitDemoPage(
-    description = item.description,
-    code = item.code,
+    descriptionRes = item.descriptionRes,
+    codeRes = item.codeRes,
     modifier = modifier,
   ) {
     FlowRow(
@@ -47,24 +52,25 @@ fun ToolkitAppLifecycleScreen(modifier: Modifier = Modifier) {
         monitor.startMonitoring()
         isObserving = true
       }) {
-        Text(text = "开始监听")
+        Text(text = stringResource(Res.string.action_start_monitoring))
       }
       OutlinedButton(onClick = {
         monitor.stopMonitoring()
         isObserving = false
       }) {
-        Text(text = "停止监听")
+        Text(text = stringResource(Res.string.action_stop_monitoring))
       }
     }
     StatusText(value = latestStatus?.let { status ->
-      buildString {
-        append("前台: ").append(status.isInForeground)
-        append("，可见: ").append(status.isVisible)
-        append("，首次启动: ").append(status.isFirstLaunch)
-        append("，冷启动: ").append(status.coldStartCount)
-        append("，热启动: ").append(status.hotStartCount)
-        append("，最近类型: ").append(status.lastStartType ?: "-")
-      }
+      stringResource(
+        Res.string.app_lifecycle_status_format,
+        status.isInForeground,
+        status.isVisible,
+        status.isFirstLaunch,
+        status.coldStartCount,
+        status.hotStartCount,
+        status.lastStartType ?: "-",
+      )
     })
   }
 }

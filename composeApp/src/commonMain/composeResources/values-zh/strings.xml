@@ -1,0 +1,346 @@
+<resources>
+  <string name="app_name">kmp-toolkit</string>
+
+  <string name="demo_app_lifecycle_title">应用生命周期监听</string>
+  <string name="demo_app_lifecycle_description">监听前后台、可见性与冷/热启动状态。</string>
+  <string name="demo_app_lifecycle_code"><![CDATA[val monitor = Toolkit.appLifecycleMonitor()
+monitor.startMonitoring()
+scope.launch {
+  monitor.observeAppLifecycle().collect { status ->
+    if (status.isInForeground) {
+
+    }
+  }
+}
+val status = monitor.getCurrentStatus()
+if (status.isFirstLaunch && status.lastStartType == AppStartType.COLD) {
+
+}
+monitor.stopMonitoring()]]></string>
+  <string name="demo_app_info_title">应用信息获取</string>
+  <string name="demo_app_info_description">读取应用包名、版本与构建号。</string>
+  <string name="demo_app_info_code"><![CDATA[val info = Toolkit.appInfo()
+println(info.packageName)
+println(info.versionName)
+println(info.buildNumber)]]></string>
+  <string name="demo_clipboard_title">剪贴板读写与监听</string>
+  <string name="demo_clipboard_description">写入、读取与监听剪贴板多类型内容变化。</string>
+  <string name="demo_clipboard_code"><![CDATA[val clipboard = Toolkit.clipboard()
+clipboard.setText("hello")
+clipboard.setContents(
+  listOf(
+    ClipboardContent.RichText(
+      text = "<b>Hello</b>",
+      format = RichTextFormat.HTML,
+      plainText = "Hello",
+    ),
+    ClipboardContent.Uri("https://example.com"),
+  )
+)
+val snapshot = clipboard.getSnapshot()
+val text = clipboard.getText()
+scope.launch {
+  clipboard.observeClipboard().collect { latest ->
+
+  }
+}
+clipboard.clear()]]></string>
+  <string name="demo_haptic_title">触感反馈</string>
+  <string name="demo_haptic_description">触发选择、成功、警告与错误反馈。</string>
+  <string name="demo_haptic_code"><![CDATA[val haptics = Toolkit.hapticFeedback()
+if (haptics.isSupported()) {
+  haptics.perform(HapticFeedbackType.SELECTION)
+}
+haptics.perform(HapticFeedbackType.SUCCESS)
+haptics.perform(HapticFeedbackType.WARNING)
+haptics.perform(HapticFeedbackType.ERROR)]]></string>
+  <string name="demo_network_title">网络状态监听</string>
+  <string name="demo_network_description">监听网络连接状态与类型变化。</string>
+  <string name="demo_network_code"><![CDATA[val monitor = Toolkit.networkMonitor()
+monitor.startMonitoring()
+scope.launch {
+  monitor.observeNetworkStatus().collect { status ->
+    if (!status.isConnected) {
+
+    }
+  }
+}
+val status = monitor.getCurrentNetworkStatus()
+println(status.isConnected)
+println(status.type)
+val isWifi = status.type == NetworkType.WIFI
+monitor.stopMonitoring()]]></string>
+  <string name="demo_sensor_title">传感器监听</string>
+  <string name="demo_sensor_description">使用 SensorToolkit 监听加速度计、陀螺仪与设备姿态等传感器。</string>
+  <string name="demo_sensor_code"><![CDATA[val sensors = Toolkit.sensorToolkit()
+if (sensors.isAvailable(SensorType.ACCELEROMETER).isAvailable) {
+  scope.launch {
+    sensors.observe(
+      type = SensorType.ACCELEROMETER,
+      options = SensorOptions(
+        samplingRateHz = 50,
+      ),
+    ).collect { event ->
+      val x = event.values[0]
+      val y = event.values[1]
+      val z = event.values[2]
+    }
+  }
+}
+val snapshot = sensors.getSnapshot(SensorType.GYROSCOPE)]]></string>
+  <string name="demo_app_navigator_title">应用级跳转</string>
+  <string name="demo_app_navigator_description">跳转系统设置、应用详情、通知设置、邮件/拨号/短信、应用商店详情与链接。</string>
+  <string name="demo_app_navigator_code"><![CDATA[val navigator = Toolkit.appNavigator()
+val openedSystem = navigator.navigateToSystemSettings()
+val openedApp = navigator.navigateToAppDetails()
+val openedNotifications = navigator.navigateToNotificationSettings()
+val openedEmail = navigator.navigateToEmail(
+  to = "support@example.com",
+  subject = "反馈",
+  body = "请描述你的问题",
+)
+val openedDial = navigator.navigateToDial("10086")
+val openedSms = navigator.navigateToSms(
+  phone = "10086",
+  body = "你好",
+)
+val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
+val openedUrl = navigator.navigateToUrl("https://example.com")]]></string>
+  <string name="demo_file_title">文件选择与保存</string>
+  <string name="demo_file_description">选择文件、选择目录、多选文件与保存文件。</string>
+  <string name="demo_file_code"><![CDATA[val files = Toolkit.fileToolkit()
+val picked = files.pickFile(
+  FilePickerOptions(
+    title = "选择文件",
+    type = PlatformFileType.File(),
+  )
+)
+val selected = files.pickFiles(
+  FilePickerOptions(
+    title = "多选文件",
+    mode = FilePickerMode.Multiple(maxItems = 3),
+  )
+)
+val directory = files.pickDirectory(
+  DirectoryPickerOptions(title = "选择目录")
+)
+val saved = files.saveFile(
+  FileSaveOptions(
+    suggestedName = "document",
+    extension = "txt",
+  )
+)]]></string>
+  <string name="demo_share_title">系统分享</string>
+  <string name="demo_share_description">调起系统分享面板，分享文本、链接与图片。</string>
+  <string name="demo_share_code"><![CDATA[Toolkit.shareToolkit().share(
+  contents = listOf(
+    ShareContent.Text("hello"),
+    ShareContent.Url("https://example.com"),
+  ),
+  options = ShareOptions(
+    title = "分享到",
+    excludedActivities = listOf(
+      ShareExcludedActivity.COPY_TO_PASTEBOARD,
+    ),
+  ),
+)]]></string>
+  <string name="demo_device_info_title">设备信息获取</string>
+  <string name="demo_device_info_description">读取设备型号、系统信息、屏幕与语言偏好。</string>
+  <string name="demo_device_info_code"><![CDATA[val device = Toolkit.deviceInfo()
+println(device.deviceModel)
+println(device.systemName)
+println(device.systemVersion)
+println(device.systemVersionCode)
+println(device.manufacturer.manufacturer)
+println(device.manufacturer.brand)
+println(device.deviceType.isTablet)
+println(device.deviceType.isEmulator)
+println(device.screen.widthPx)
+println(device.screen.heightPx)
+println(device.screen.density)
+println(device.timeZone.id)
+println(device.timeZone.offsetMinutes)
+println(device.locale.current.tag)
+println(device.locale.preferred)]]></string>
+  <string name="demo_platform_title">平台判断</string>
+  <string name="demo_platform_description">在 common 代码中判断 Platform 类型。</string>
+  <string name="demo_platform_code"><![CDATA[when (Toolkit.platformType()) {
+  PlatformType.ANDROID -> {
+
+  }
+  PlatformType.IOS -> {
+
+  }
+}]]></string>
+  <string name="demo_keyboard_title">键盘状态监听</string>
+  <string name="demo_keyboard_description">监听软键盘可见性与高度变化。</string>
+  <string name="demo_keyboard_code"><![CDATA[val keyboardMonitor = Toolkit.keyboardMonitor()
+keyboardMonitor.startMonitoring()
+scope.launch {
+  keyboardMonitor.observeKeyboardStatus().collect { status ->
+    if (status.isVisible) {
+
+    }
+  }
+}
+val status = keyboardMonitor.getCurrentStatus()
+println(status.isVisible)
+println(status.heightPx)
+keyboardMonitor.stopMonitoring()]]></string>
+
+  <string name="action_start_monitoring">开始监听</string>
+  <string name="action_stop_monitoring">停止监听</string>
+  <string name="action_clear">清空</string>
+  <string name="error_format">错误: %1$s</string>
+  <string name="result_format">结果: %1$s</string>
+
+  <string name="app_lifecycle_status_format">前台: %1$s，可见: %2$s，首次启动: %3$s，冷启动: %4$s，热启动: %5$s，最近类型: %6$s</string>
+
+  <string name="action_read_app_info">读取应用信息</string>
+  <string name="app_info_package_name">包名</string>
+  <string name="app_info_app_name">App 名称</string>
+  <string name="app_info_version_name">版本名</string>
+  <string name="app_info_build_number">构建号</string>
+  <string name="app_info_build_type">构建类型</string>
+  <string name="app_info_build_time">构建时间</string>
+
+  <string name="clipboard_input_label">写入内容</string>
+  <string name="clipboard_default_text">工具包示例</string>
+  <string name="action_write">写入</string>
+  <string name="action_write_rich_text_uri">写入富文本与 URI</string>
+  <string name="action_write_image">写入图片</string>
+  <string name="action_read">读取</string>
+  <string name="action_read_image">读取图片</string>
+  <string name="clipboard_text_status">剪贴板文本: %1$s</string>
+  <string name="clipboard_image_status">剪贴板图片: %1$s</string>
+  <string name="clipboard_contents_status">剪贴板内容: %1$s</string>
+  <string name="clipboard_content_empty">空</string>
+  <string name="clipboard_content_text">文本</string>
+  <string name="clipboard_content_rich_text">富文本(%1$s)</string>
+  <string name="clipboard_content_uri">URI</string>
+  <string name="clipboard_content_image">图片</string>
+  <string name="image_not_found">未找到图片</string>
+  <string name="app_logo_not_found">应用 Logo 未找到</string>
+  <string name="image_info_format">图片字节: %1$s, 类型: %2$s</string>
+
+  <string name="haptic_selection">选择</string>
+  <string name="haptic_success">成功</string>
+  <string name="haptic_warning">警告</string>
+  <string name="haptic_error">错误</string>
+
+  <string name="network_wifi_connected">WiFi 已连接</string>
+  <string name="network_cellular_connected">移动数据</string>
+  <string name="network_ethernet_connected">有线连接</string>
+  <string name="network_vpn_connected">VPN 连接</string>
+  <string name="network_not_connected">无网络连接</string>
+  <string name="network_checking">检测中...</string>
+
+  <string name="sensor_select_format">选择传感器: %1$s</string>
+  <string name="sensor_current_format">当前传感器: %1$s</string>
+  <string name="sensor_availability_format">可用性: %1$s</string>
+  <string name="sensor_sampling_status_format">采样状态: %1$s</string>
+  <string name="sensor_sampling_observing">监听中</string>
+  <string name="sensor_sampling_not_observing">未监听</string>
+  <string name="sensor_available">可用</string>
+  <string name="sensor_unavailable">不可用</string>
+  <string name="sensor_unavailable_reason">不可用: %1$s</string>
+  <string name="sensor_axis_value_format">%1$s: %2$s</string>
+  <string name="sensor_accelerometer">加速度计</string>
+  <string name="sensor_gyroscope">陀螺仪</string>
+  <string name="sensor_magnetometer">磁力计</string>
+  <string name="sensor_barometer">气压计</string>
+  <string name="sensor_step_counter">计步</string>
+  <string name="sensor_step_detector">步伐检测</string>
+  <string name="sensor_device_motion">设备姿态</string>
+  <string name="sensor_light">光线</string>
+  <string name="sensor_proximity">距离</string>
+  <string name="sensor_gravity">重力</string>
+  <string name="sensor_linear_acceleration">线性加速度</string>
+  <string name="sensor_rotation_vector">旋转向量</string>
+  <string name="sensor_game_rotation_vector">游戏旋转向量</string>
+  <string name="sensor_geomagnetic_rotation_vector">地磁旋转向量</string>
+  <string name="sensor_tilt_detector">倾斜检测</string>
+  <string name="sensor_significant_motion">显著运动</string>
+  <string name="sensor_motion_detect">运动检测</string>
+  <string name="sensor_stationary_detect">静止检测</string>
+  <string name="sensor_ambient_temperature">环境温度</string>
+  <string name="sensor_relative_humidity">相对湿度</string>
+
+  <string name="keyboard_input_label">输入以唤起软键盘</string>
+  <string name="keyboard_status_format">可见: %1$s，高度: %2$s px</string>
+
+  <string name="action_system_settings">系统设置</string>
+  <string name="action_app_details">应用详情</string>
+  <string name="action_notification_settings">通知设置</string>
+  <string name="action_send_email">发送邮件</string>
+  <string name="action_dial">拨号</string>
+  <string name="action_sms">短信</string>
+  <string name="action_app_store_details">应用商店详情</string>
+  <string name="action_open_url">打开 URL</string>
+  <string name="email_subject_feedback">反馈</string>
+  <string name="email_body_describe_issue">请描述你的问题</string>
+  <string name="sms_body_hello">你好</string>
+
+  <string name="file_picker_title_file">选择文件</string>
+  <string name="file_picker_title_files">多选文件</string>
+  <string name="file_picker_title_directory">选择目录</string>
+  <string name="action_pick_file">选择文件</string>
+  <string name="action_pick_files">多选文件</string>
+  <string name="action_pick_directory">选择目录</string>
+  <string name="action_save_file">保存文件</string>
+  <string name="file_not_run">未执行</string>
+  <string name="file_selected_file">已选择文件</string>
+  <string name="file_selected_directory">已选择目录</string>
+  <string name="file_saved_file">已保存文件</string>
+  <string name="file_no_file_selected">未选择文件</string>
+  <string name="file_no_directory_selected">未选择目录</string>
+  <string name="file_not_saved">未保存文件</string>
+  <string name="file_message_with_name">%1$s: %2$s</string>
+  <plurals name="file_selected_count">
+    <item quantity="other">已选择 %1$d 个文件</item>
+  </plurals>
+  <string name="file_info_status">文件信息: %1$s</string>
+  <string name="file_info_read_failed">读取文件信息失败: %1$s</string>
+  <string name="file_multi_select_result">多选结果: %1$s</string>
+  <string name="file_info_format">名称: %1$s, 大小: %2$s, MIME 类型: %3$s, 存在: %4$s, 目录: %5$s, 路径: %6$s</string>
+  <string name="unknown_error">未知错误</string>
+
+  <string name="share_default_text">分享内容</string>
+  <string name="share_text_label">文本</string>
+  <string name="share_url_label">链接</string>
+  <string name="share_title">分享到</string>
+  <string name="action_share_text">分享文本</string>
+  <string name="action_share_url">分享链接</string>
+  <string name="action_share_image">分享图片</string>
+  <string name="action_share_combination">分享组合</string>
+  <string name="share_text_success">分享文本成功</string>
+  <string name="share_text_failure">分享文本失败</string>
+  <string name="share_url_success">分享链接成功</string>
+  <string name="share_url_failure">分享链接失败</string>
+  <string name="share_image_success">分享图片成功</string>
+  <string name="share_image_failure">分享图片失败</string>
+  <string name="share_combination_success">分享组合成功</string>
+  <string name="share_combination_failure">分享组合失败</string>
+
+  <string name="action_read_device_info">读取设备信息</string>
+  <string name="device_model">型号</string>
+  <string name="device_system">系统</string>
+  <string name="device_system_version_code">系统版本号</string>
+  <string name="device_manufacturer">厂商</string>
+  <string name="device_brand">品牌</string>
+  <string name="device_tablet">平板</string>
+  <string name="device_emulator">模拟器</string>
+  <string name="device_screen_px">屏幕 (px)</string>
+  <string name="device_screen_dp">屏幕 (dp)</string>
+  <string name="device_density">密度</string>
+  <string name="device_orientation">方向</string>
+  <string name="device_landscape">横屏</string>
+  <string name="device_portrait">竖屏</string>
+  <string name="device_time_zone">时区</string>
+  <string name="device_time_zone_value">%1$s (%2$s 分钟)</string>
+  <string name="device_current_language">当前语言</string>
+  <string name="device_preferred_languages">首选语言</string>
+
+  <string name="action_read_platform_type">读取平台类型</string>
+  <string name="platform_current_format">当前平台: %1$s</string>
+</resources>

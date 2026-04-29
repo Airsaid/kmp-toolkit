@@ -17,11 +17,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.error_format
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun ToolkitDemoPage(
-  description: String,
-  code: String,
+  descriptionRes: StringResource,
+  codeRes: StringResource,
   modifier: Modifier = Modifier,
   content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -33,7 +37,7 @@ internal fun ToolkitDemoPage(
       .verticalScroll(scrollState),
   ) {
     Text(
-      text = description,
+      text = stringResource(descriptionRes),
       style = MaterialTheme.typography.bodyMedium,
       modifier = Modifier.padding(top = 6.dp)
     )
@@ -50,7 +54,7 @@ internal fun ToolkitDemoPage(
         content()
       }
     }
-    CodeBlock(code = code, modifier = Modifier.padding(top = 16.dp))
+    CodeBlock(code = stringResource(codeRes), modifier = Modifier.padding(top = 16.dp))
   }
 }
 
@@ -88,7 +92,7 @@ internal fun StatusText(value: String?) {
 internal fun ErrorText(message: String?) {
   if (message.isNullOrBlank()) return
   Text(
-    text = "错误: $message",
+    text = stringResource(Res.string.error_format, message),
     style = MaterialTheme.typography.bodySmall,
     color = MaterialTheme.colorScheme.error,
     modifier = Modifier.padding(top = 8.dp)

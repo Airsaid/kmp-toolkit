@@ -15,6 +15,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.airsaid.toolkit.AppInfo
 import com.airsaid.toolkit.Toolkit
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.action_clear
+import com.airsaid.toolkit.demo.resources.action_read_app_info
+import com.airsaid.toolkit.demo.resources.app_info_app_name
+import com.airsaid.toolkit.demo.resources.app_info_build_number
+import com.airsaid.toolkit.demo.resources.app_info_build_time
+import com.airsaid.toolkit.demo.resources.app_info_build_type
+import com.airsaid.toolkit.demo.resources.app_info_package_name
+import com.airsaid.toolkit.demo.resources.app_info_version_name
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -23,8 +33,8 @@ fun ToolkitAppInfoScreen(modifier: Modifier = Modifier) {
   var appInfo by remember { mutableStateOf<AppInfo?>(null) }
 
   ToolkitDemoPage(
-    description = item.description,
-    code = item.code,
+    descriptionRes = item.descriptionRes,
+    codeRes = item.codeRes,
     modifier = modifier,
   ) {
     FlowRow(
@@ -35,26 +45,44 @@ fun ToolkitAppInfoScreen(modifier: Modifier = Modifier) {
       Button(onClick = {
         appInfo = Toolkit.appInfo()
       }) {
-        Text(text = "读取应用信息")
+        Text(text = stringResource(Res.string.action_read_app_info))
       }
       Button(onClick = {
         appInfo = null
       }) {
-        Text(text = "清空")
+        Text(text = stringResource(Res.string.action_clear))
       }
     }
-    StatusText(value = appInfo?.let(::buildAppInfoText))
+    StatusText(value = appInfo?.let { info ->
+      buildAppInfoText(
+        info = info,
+        packageNameLabel = stringResource(Res.string.app_info_package_name),
+        appNameLabel = stringResource(Res.string.app_info_app_name),
+        versionNameLabel = stringResource(Res.string.app_info_version_name),
+        buildNumberLabel = stringResource(Res.string.app_info_build_number),
+        buildTypeLabel = stringResource(Res.string.app_info_build_type),
+        buildTimeLabel = stringResource(Res.string.app_info_build_time),
+      )
+    })
   }
 }
 
-private fun buildAppInfoText(info: AppInfo): String {
+private fun buildAppInfoText(
+  info: AppInfo,
+  packageNameLabel: String,
+  appNameLabel: String,
+  versionNameLabel: String,
+  buildNumberLabel: String,
+  buildTypeLabel: String,
+  buildTimeLabel: String,
+): String {
   val rows = listOf(
-    "包名" to info.packageName,
-    "App 名称" to info.appName,
-    "版本名" to info.versionName,
-    "构建号" to info.buildNumber,
-    "buildType" to info.buildType,
-    "buildTime" to info.buildTime,
+    packageNameLabel to info.packageName,
+    appNameLabel to info.appName,
+    versionNameLabel to info.versionName,
+    buildNumberLabel to info.buildNumber,
+    buildTypeLabel to info.buildType,
+    buildTimeLabel to info.buildTime,
   )
   return rows.joinToString("\n") { (label, value) ->
     "$label: ${value.ifBlank { "-" }}"

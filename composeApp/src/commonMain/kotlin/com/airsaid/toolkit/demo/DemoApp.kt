@@ -22,14 +22,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.app_name
 import com.airsaid.toolkit.demo.toolkit.ToolkitDemoItems
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun DemoApp() {
   val navController = rememberNavController()
   val backStackEntry by navController.currentBackStackEntryAsState()
   val currentRoute = backStackEntry?.destination?.route ?: DemoRoutes.HomeRoute
-  val currentScreenName = resolveScreenTitle(currentRoute)
+  val currentScreenName = resolveScreenTitleRes(currentRoute)?.let { stringResource(it) } ?: currentRoute
   val snackbarHostState = remember { SnackbarHostState() }
 
   MaterialTheme {
@@ -48,9 +52,9 @@ fun DemoApp() {
   }
 }
 
-private fun resolveScreenTitle(route: String): String {
-  val toolkitTitle = ToolkitDemoItems.all.firstOrNull { it.route == route }?.title
-  return toolkitTitle ?: route
+private fun resolveScreenTitleRes(route: String): StringResource? {
+  if (route == DemoRoutes.HomeRoute) return Res.string.app_name
+  return ToolkitDemoItems.all.firstOrNull { it.route == route }?.titleRes
 }
 
 @Composable

@@ -31,6 +31,7 @@ kotlin {
         implementation(compose.foundation)
         implementation(compose.material3)
         implementation(compose.materialIconsExtended)
+        implementation(compose.components.resources)
         implementation(compose.ui)
         implementation(libs.androidx.navigation.compose)
         implementation(projects.toolkit)
@@ -47,6 +48,10 @@ kotlin {
       }
     }
   }
+}
+
+compose.resources {
+  packageOfResClass = "com.airsaid.toolkit.demo.resources"
 }
 
 android {

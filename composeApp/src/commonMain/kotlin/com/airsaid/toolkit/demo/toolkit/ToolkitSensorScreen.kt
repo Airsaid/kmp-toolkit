@@ -25,6 +25,41 @@ import com.airsaid.toolkit.SensorEvent
 import com.airsaid.toolkit.SensorOptions
 import com.airsaid.toolkit.SensorType
 import com.airsaid.toolkit.Toolkit
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.action_start_monitoring
+import com.airsaid.toolkit.demo.resources.action_stop_monitoring
+import com.airsaid.toolkit.demo.resources.sensor_accelerometer
+import com.airsaid.toolkit.demo.resources.sensor_ambient_temperature
+import com.airsaid.toolkit.demo.resources.sensor_available
+import com.airsaid.toolkit.demo.resources.sensor_availability_format
+import com.airsaid.toolkit.demo.resources.sensor_axis_value_format
+import com.airsaid.toolkit.demo.resources.sensor_barometer
+import com.airsaid.toolkit.demo.resources.sensor_current_format
+import com.airsaid.toolkit.demo.resources.sensor_device_motion
+import com.airsaid.toolkit.demo.resources.sensor_game_rotation_vector
+import com.airsaid.toolkit.demo.resources.sensor_geomagnetic_rotation_vector
+import com.airsaid.toolkit.demo.resources.sensor_gravity
+import com.airsaid.toolkit.demo.resources.sensor_gyroscope
+import com.airsaid.toolkit.demo.resources.sensor_light
+import com.airsaid.toolkit.demo.resources.sensor_linear_acceleration
+import com.airsaid.toolkit.demo.resources.sensor_magnetometer
+import com.airsaid.toolkit.demo.resources.sensor_motion_detect
+import com.airsaid.toolkit.demo.resources.sensor_proximity
+import com.airsaid.toolkit.demo.resources.sensor_relative_humidity
+import com.airsaid.toolkit.demo.resources.sensor_rotation_vector
+import com.airsaid.toolkit.demo.resources.sensor_sampling_not_observing
+import com.airsaid.toolkit.demo.resources.sensor_sampling_observing
+import com.airsaid.toolkit.demo.resources.sensor_sampling_status_format
+import com.airsaid.toolkit.demo.resources.sensor_select_format
+import com.airsaid.toolkit.demo.resources.sensor_significant_motion
+import com.airsaid.toolkit.demo.resources.sensor_stationary_detect
+import com.airsaid.toolkit.demo.resources.sensor_step_counter
+import com.airsaid.toolkit.demo.resources.sensor_step_detector
+import com.airsaid.toolkit.demo.resources.sensor_tilt_detector
+import com.airsaid.toolkit.demo.resources.sensor_unavailable
+import com.airsaid.toolkit.demo.resources.sensor_unavailable_reason
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -36,7 +71,7 @@ fun ToolkitSensorScreen(modifier: Modifier = Modifier) {
   var availability by remember { mutableStateOf<SensorAvailability?>(null) }
   var isObserving by remember { mutableStateOf(false) }
   var isMenuExpanded by remember { mutableStateOf(false) }
-  val selectedDisplayName = selectedType.displayName()
+  val selectedDisplayName = stringResource(selectedType.displayNameRes())
 
   LaunchedEffect(selectedType) {
     availability = toolkit.isAvailable(selectedType)
@@ -62,14 +97,14 @@ fun ToolkitSensorScreen(modifier: Modifier = Modifier) {
   }
 
   ToolkitDemoPage(
-    description = item.description,
-    code = item.code,
+    descriptionRes = item.descriptionRes,
+    codeRes = item.codeRes,
     modifier = modifier,
   ) {
     Button(
       onClick = { isMenuExpanded = true },
     ) {
-      Text(text = "选择传感器: $selectedDisplayName")
+      Text(text = stringResource(Res.string.sensor_select_format, selectedDisplayName))
     }
     DropdownMenu(
       expanded = isMenuExpanded,
@@ -77,7 +112,7 @@ fun ToolkitSensorScreen(modifier: Modifier = Modifier) {
     ) {
       SensorType.entries.forEach { type ->
         DropdownMenuItem(
-          text = { Text(text = type.displayName()) },
+          text = { Text(text = stringResource(type.displayNameRes())) },
           onClick = {
             selectedType = type
             isObserving = false
@@ -98,59 +133,72 @@ fun ToolkitSensorScreen(modifier: Modifier = Modifier) {
           isObserving = true
         }
       }) {
-        Text(text = "开始监听")
+        Text(text = stringResource(Res.string.action_start_monitoring))
       }
       OutlinedButton(onClick = {
         isObserving = false
         toolkit.stop(selectedType)
       }) {
-        Text(text = "停止监听")
+        Text(text = stringResource(Res.string.action_stop_monitoring))
       }
     }
 
-    StatusText(value = "当前传感器: $selectedDisplayName")
-    StatusText(value = "可用性: ${availability.toDisplayText()}")
-    StatusText(value = "采样状态: ${if (isObserving) "监听中" else "未监听"}")
+    StatusText(value = stringResource(Res.string.sensor_current_format, selectedDisplayName))
+    StatusText(value = stringResource(Res.string.sensor_availability_format, availability.toDisplayText()))
+    StatusText(
+      value = stringResource(
+        Res.string.sensor_sampling_status_format,
+        if (isObserving) {
+          stringResource(Res.string.sensor_sampling_observing)
+        } else {
+          stringResource(Res.string.sensor_sampling_not_observing)
+        },
+      ),
+    )
     StatusText(value = latestEvent.axisValue("X", 0))
     StatusText(value = latestEvent.axisValue("Y", 1))
     StatusText(value = latestEvent.axisValue("Z", 2))
   }
 }
 
-private fun SensorType.displayName(): String {
+private fun SensorType.displayNameRes(): StringResource {
   return when (this) {
-    SensorType.ACCELEROMETER -> "加速度计"
-    SensorType.GYROSCOPE -> "陀螺仪"
-    SensorType.MAGNETOMETER -> "磁力计"
-    SensorType.BAROMETER -> "气压计"
-    SensorType.STEP_COUNTER -> "计步"
-    SensorType.STEP_DETECTOR -> "步伐检测"
-    SensorType.DEVICE_MOTION -> "设备姿态"
-    SensorType.LIGHT -> "光线"
-    SensorType.PROXIMITY -> "距离"
-    SensorType.GRAVITY -> "重力"
-    SensorType.LINEAR_ACCELERATION -> "线性加速度"
-    SensorType.ROTATION_VECTOR -> "旋转向量"
-    SensorType.GAME_ROTATION_VECTOR -> "游戏旋转向量"
-    SensorType.GEOMAGNETIC_ROTATION_VECTOR -> "地磁旋转向量"
-    SensorType.TILT_DETECTOR -> "倾斜检测"
-    SensorType.SIGNIFICANT_MOTION -> "显著运动"
-    SensorType.MOTION_DETECT -> "运动检测"
-    SensorType.STATIONARY_DETECT -> "静止检测"
-    SensorType.AMBIENT_TEMPERATURE -> "环境温度"
-    SensorType.RELATIVE_HUMIDITY -> "相对湿度"
+    SensorType.ACCELEROMETER -> Res.string.sensor_accelerometer
+    SensorType.GYROSCOPE -> Res.string.sensor_gyroscope
+    SensorType.MAGNETOMETER -> Res.string.sensor_magnetometer
+    SensorType.BAROMETER -> Res.string.sensor_barometer
+    SensorType.STEP_COUNTER -> Res.string.sensor_step_counter
+    SensorType.STEP_DETECTOR -> Res.string.sensor_step_detector
+    SensorType.DEVICE_MOTION -> Res.string.sensor_device_motion
+    SensorType.LIGHT -> Res.string.sensor_light
+    SensorType.PROXIMITY -> Res.string.sensor_proximity
+    SensorType.GRAVITY -> Res.string.sensor_gravity
+    SensorType.LINEAR_ACCELERATION -> Res.string.sensor_linear_acceleration
+    SensorType.ROTATION_VECTOR -> Res.string.sensor_rotation_vector
+    SensorType.GAME_ROTATION_VECTOR -> Res.string.sensor_game_rotation_vector
+    SensorType.GEOMAGNETIC_ROTATION_VECTOR -> Res.string.sensor_geomagnetic_rotation_vector
+    SensorType.TILT_DETECTOR -> Res.string.sensor_tilt_detector
+    SensorType.SIGNIFICANT_MOTION -> Res.string.sensor_significant_motion
+    SensorType.MOTION_DETECT -> Res.string.sensor_motion_detect
+    SensorType.STATIONARY_DETECT -> Res.string.sensor_stationary_detect
+    SensorType.AMBIENT_TEMPERATURE -> Res.string.sensor_ambient_temperature
+    SensorType.RELATIVE_HUMIDITY -> Res.string.sensor_relative_humidity
   }
 }
 
+@Composable
 private fun SensorAvailability?.toDisplayText(): String {
+  val unavailableReason = this?.reason
   return when {
     this == null -> "-"
-    isAvailable -> "可用"
-    else -> "不可用" + (reason?.let { ": $it" } ?: "")
+    isAvailable -> stringResource(Res.string.sensor_available)
+    unavailableReason.isNullOrBlank() -> stringResource(Res.string.sensor_unavailable)
+    else -> stringResource(Res.string.sensor_unavailable_reason, unavailableReason)
   }
 }
 
+@Composable
 private fun SensorEvent?.axisValue(label: String, index: Int): String? {
   val value = this?.values?.getOrNull(index) ?: return null
-  return "$label: $value"
+  return stringResource(Res.string.sensor_axis_value_format, label, value)
 }

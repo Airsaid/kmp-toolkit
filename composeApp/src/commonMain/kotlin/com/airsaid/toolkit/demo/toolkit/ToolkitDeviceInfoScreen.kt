@@ -12,18 +12,39 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.airsaid.toolkit.DeviceInfo
 import com.airsaid.toolkit.Toolkit
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.action_read_device_info
+import com.airsaid.toolkit.demo.resources.device_brand
+import com.airsaid.toolkit.demo.resources.device_current_language
+import com.airsaid.toolkit.demo.resources.device_density
+import com.airsaid.toolkit.demo.resources.device_emulator
+import com.airsaid.toolkit.demo.resources.device_landscape
+import com.airsaid.toolkit.demo.resources.device_manufacturer
+import com.airsaid.toolkit.demo.resources.device_model
+import com.airsaid.toolkit.demo.resources.device_orientation
+import com.airsaid.toolkit.demo.resources.device_portrait
+import com.airsaid.toolkit.demo.resources.device_preferred_languages
+import com.airsaid.toolkit.demo.resources.device_screen_dp
+import com.airsaid.toolkit.demo.resources.device_screen_px
+import com.airsaid.toolkit.demo.resources.device_system
+import com.airsaid.toolkit.demo.resources.device_system_version_code
+import com.airsaid.toolkit.demo.resources.device_tablet
+import com.airsaid.toolkit.demo.resources.device_time_zone
+import com.airsaid.toolkit.demo.resources.device_time_zone_value
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ToolkitDeviceInfoScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.DeviceInfoRoute } }
-  var deviceInfo by remember { mutableStateOf<String?>(null) }
+  var deviceInfo by remember { mutableStateOf<DeviceInfo?>(null) }
 
   ToolkitDemoPage(
-    description = item.description,
-    code = item.code,
+    descriptionRes = item.descriptionRes,
+    codeRes = item.codeRes,
     modifier = modifier,
   ) {
     FlowRow(
@@ -32,27 +53,42 @@ fun ToolkitDeviceInfoScreen(modifier: Modifier = Modifier) {
       verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
       Button(onClick = {
-        val device = Toolkit.deviceInfo()
-        deviceInfo = buildString {
-          append("型号: ").append(device.deviceModel).append("\n")
-          append("系统: ").append(device.systemName).append(" ").append(device.systemVersion).append("\n")
-          append("系统版本号: ").append(device.systemVersionCode).append("\n")
-          append("厂商: ").append(device.manufacturer.manufacturer).append("\n")
-          append("品牌: ").append(device.manufacturer.brand).append("\n")
-          append("平板: ").append(device.deviceType.isTablet).append("\n")
-          append("模拟器: ").append(device.deviceType.isEmulator).append("\n")
-          append("屏幕 (px): ").append(device.screen.widthPx).append(" x ").append(device.screen.heightPx).append("\n")
-          append("屏幕 (dp): ").append(device.screen.widthDp).append(" x ").append(device.screen.heightDp).append("\n")
-          append("密度: ").append(device.screen.density).append(" / ").append(device.screen.densityDpi).append("dpi").append("\n")
-          append("方向: ").append(if (device.screen.isLandscape) "横屏" else "竖屏").append("\n")
-          append("时区: ").append(device.timeZone.id).append(" (").append(device.timeZone.offsetMinutes).append(" 分钟)").append("\n")
-          append("当前语言: ").append(device.locale.current.tag).append("\n")
-          append("首选语言: ").append(device.locale.preferred.joinToString { it.tag })
-        }
+        deviceInfo = Toolkit.deviceInfo()
       }) {
-        Text(text = "读取设备信息")
+        Text(text = stringResource(Res.string.action_read_device_info))
       }
     }
-    StatusText(value = deviceInfo)
+    StatusText(value = deviceInfo?.let { device -> buildDeviceInfoText(device) })
+  }
+}
+
+@Composable
+private fun buildDeviceInfoText(device: DeviceInfo): String {
+  val rows = listOf(
+    stringResource(Res.string.device_model) to device.deviceModel,
+    stringResource(Res.string.device_system) to "${device.systemName} ${device.systemVersion}",
+    stringResource(Res.string.device_system_version_code) to device.systemVersionCode.toString(),
+    stringResource(Res.string.device_manufacturer) to device.manufacturer.manufacturer,
+    stringResource(Res.string.device_brand) to device.manufacturer.brand,
+    stringResource(Res.string.device_tablet) to device.deviceType.isTablet.toString(),
+    stringResource(Res.string.device_emulator) to device.deviceType.isEmulator.toString(),
+    stringResource(Res.string.device_screen_px) to "${device.screen.widthPx} x ${device.screen.heightPx}",
+    stringResource(Res.string.device_screen_dp) to "${device.screen.widthDp} x ${device.screen.heightDp}",
+    stringResource(Res.string.device_density) to "${device.screen.density} / ${device.screen.densityDpi}dpi",
+    stringResource(Res.string.device_orientation) to if (device.screen.isLandscape) {
+      stringResource(Res.string.device_landscape)
+    } else {
+      stringResource(Res.string.device_portrait)
+    },
+    stringResource(Res.string.device_time_zone) to stringResource(
+      Res.string.device_time_zone_value,
+      device.timeZone.id,
+      device.timeZone.offsetMinutes,
+    ),
+    stringResource(Res.string.device_current_language) to device.locale.current.tag,
+    stringResource(Res.string.device_preferred_languages) to device.locale.preferred.joinToString { it.tag },
+  )
+  return rows.joinToString("\n") { (label, value) ->
+    "$label: ${value.ifBlank { "-" }}"
   }
 }

@@ -18,7 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.airsaid.toolkit.KeyboardStatus
 import com.airsaid.toolkit.Toolkit
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.action_start_monitoring
+import com.airsaid.toolkit.demo.resources.action_stop_monitoring
+import com.airsaid.toolkit.demo.resources.keyboard_input_label
+import com.airsaid.toolkit.demo.resources.keyboard_status_format
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -43,15 +49,15 @@ fun ToolkitKeyboardScreen(modifier: Modifier = Modifier) {
   }
 
   ToolkitDemoPage(
-    description = item.description,
-    code = item.code,
+    descriptionRes = item.descriptionRes,
+    codeRes = item.codeRes,
     modifier = modifier,
   ) {
     OutlinedTextField(
       value = inputText,
       onValueChange = { inputText = it },
       modifier = Modifier.fillMaxWidth(),
-      label = { Text(text = "输入以唤起软键盘") },
+      label = { Text(text = stringResource(Res.string.keyboard_input_label)) },
     )
     FlowRow(
       modifier = Modifier.fillMaxWidth(),
@@ -62,17 +68,17 @@ fun ToolkitKeyboardScreen(modifier: Modifier = Modifier) {
         monitor.startMonitoring()
         isObserving = true
       }) {
-        Text(text = "开始监听")
+        Text(text = stringResource(Res.string.action_start_monitoring))
       }
       OutlinedButton(onClick = {
         monitor.stopMonitoring()
         isObserving = false
       }) {
-        Text(text = "停止监听")
+        Text(text = stringResource(Res.string.action_stop_monitoring))
       }
     }
     StatusText(value = latestStatus?.let { status ->
-      "可见: ${status.isVisible}，高度: ${status.heightPx}px"
+      stringResource(Res.string.keyboard_status_format, status.isVisible, status.heightPx)
     })
   }
 }

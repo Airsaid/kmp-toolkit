@@ -13,6 +13,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import com.airsaid.toolkit.PlatformType
 import com.airsaid.toolkit.Toolkit
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.action_app_details
+import com.airsaid.toolkit.demo.resources.action_app_store_details
+import com.airsaid.toolkit.demo.resources.action_dial
+import com.airsaid.toolkit.demo.resources.action_notification_settings
+import com.airsaid.toolkit.demo.resources.action_open_url
+import com.airsaid.toolkit.demo.resources.action_send_email
+import com.airsaid.toolkit.demo.resources.action_sms
+import com.airsaid.toolkit.demo.resources.action_system_settings
+import com.airsaid.toolkit.demo.resources.email_body_describe_issue
+import com.airsaid.toolkit.demo.resources.email_subject_feedback
+import com.airsaid.toolkit.demo.resources.sms_body_hello
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -26,9 +39,12 @@ fun ToolkitAppNavigatorScreen(modifier: Modifier = Modifier) {
       "com.example.app"
     }
   }
+  val emailSubject = stringResource(Res.string.email_subject_feedback)
+  val emailBody = stringResource(Res.string.email_body_describe_issue)
+  val smsBody = stringResource(Res.string.sms_body_hello)
   ToolkitDemoPage(
-    description = item.description,
-    code = item.code,
+    descriptionRes = item.descriptionRes,
+    codeRes = item.codeRes,
     modifier = modifier,
   ) {
     FlowRow(
@@ -39,49 +55,49 @@ fun ToolkitAppNavigatorScreen(modifier: Modifier = Modifier) {
       Button(onClick = {
         navigator.navigateToSystemSettings()
       }) {
-        Text(text = "系统设置")
+        Text(text = stringResource(Res.string.action_system_settings))
       }
       OutlinedButton(onClick = {
         navigator.navigateToAppDetails()
       }) {
-        Text(text = "应用详情")
+        Text(text = stringResource(Res.string.action_app_details))
       }
       OutlinedButton(onClick = {
         navigator.navigateToNotificationSettings()
       }) {
-        Text(text = "通知设置")
+        Text(text = stringResource(Res.string.action_notification_settings))
       }
       OutlinedButton(onClick = {
         navigator.navigateToEmail(
           to = "support@example.com",
-          subject = "反馈",
-          body = "请描述你的问题",
+          subject = emailSubject,
+          body = emailBody,
         )
       }) {
-        Text(text = "发送邮件")
+        Text(text = stringResource(Res.string.action_send_email))
       }
       OutlinedButton(onClick = {
         navigator.navigateToDial("10086")
       }) {
-        Text(text = "拨号")
+        Text(text = stringResource(Res.string.action_dial))
       }
       OutlinedButton(onClick = {
         navigator.navigateToSms(
           phone = "10086",
-          body = "你好",
+          body = smsBody,
         )
       }) {
-        Text(text = "短信")
+        Text(text = stringResource(Res.string.action_sms))
       }
       OutlinedButton(onClick = {
         navigator.navigateToAppStoreDetails(appStoreId)
       }) {
-        Text(text = "应用商店详情")
+        Text(text = stringResource(Res.string.action_app_store_details))
       }
       OutlinedButton(onClick = {
         navigator.navigateToUrl("https://example.com")
       }) {
-        Text(text = "打开 URL")
+        Text(text = stringResource(Res.string.action_open_url))
       }
     }
   }

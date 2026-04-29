@@ -34,5 +34,14 @@
 ## Documentation Guidelines
 - When updating `README.md`, sync the same changes in other language variants (e.g., `README.zh.md`) to keep content aligned.
 
+## ComposeApp Text Internationalization
+- All new user-visible text in `composeApp/` must be extracted to Compose Multiplatform string resources.
+- Use English as the default text in `composeApp/src/commonMain/composeResources/values/strings.xml`.
+- Add the matching Chinese text in `composeApp/src/commonMain/composeResources/values-zh/strings.xml`.
+- Resolve text through `stringResource(Res.string...)` or `pluralStringResource(Res.plurals...)`; do not add manual language switching or override the system locale.
+- Use placeholders or plurals for dynamic text instead of concatenating localized sentence fragments in Kotlin.
+- Keep technical constants in code when they are not user-facing, such as routes, URLs, MIME types, package IDs, file extensions, enum names, and sample identifiers.
+- If Android system-level labels are added or changed, keep `composeApp/src/androidMain/res/values/strings.xml` and `composeApp/src/androidMain/res/values-zh/strings.xml` aligned.
+
 ## Security & Configuration Tips
 - `local.properties` is intentionally ignored; it contains machine-specific paths like the Android SDK. Do not commit secrets, tokens, or signing configs.

@@ -19,6 +19,26 @@ import com.airsaid.toolkit.ShareExcludedActivity
 import com.airsaid.toolkit.ShareOptions
 import com.airsaid.toolkit.Toolkit
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.action_share_combination
+import com.airsaid.toolkit.demo.resources.action_share_image
+import com.airsaid.toolkit.demo.resources.action_share_text
+import com.airsaid.toolkit.demo.resources.action_share_url
+import com.airsaid.toolkit.demo.resources.app_logo_not_found
+import com.airsaid.toolkit.demo.resources.result_format
+import com.airsaid.toolkit.demo.resources.share_combination_failure
+import com.airsaid.toolkit.demo.resources.share_combination_success
+import com.airsaid.toolkit.demo.resources.share_default_text
+import com.airsaid.toolkit.demo.resources.share_image_failure
+import com.airsaid.toolkit.demo.resources.share_image_success
+import com.airsaid.toolkit.demo.resources.share_text_failure
+import com.airsaid.toolkit.demo.resources.share_text_label
+import com.airsaid.toolkit.demo.resources.share_text_success
+import com.airsaid.toolkit.demo.resources.share_title
+import com.airsaid.toolkit.demo.resources.share_url_failure
+import com.airsaid.toolkit.demo.resources.share_url_label
+import com.airsaid.toolkit.demo.resources.share_url_success
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -26,25 +46,27 @@ fun ToolkitShareScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.ShareRoute } }
   val shareToolkit = remember { Toolkit.shareToolkit() }
   val appLogoBytes = rememberAppLogoBytes()
-  var text by remember { mutableStateOf("分享内容") }
+  val defaultText = stringResource(Res.string.share_default_text)
+  val shareTitle = stringResource(Res.string.share_title)
+  var text by remember(defaultText) { mutableStateOf(defaultText) }
   var url by remember { mutableStateOf("https://example.com") }
-  var lastResult by remember { mutableStateOf<String?>(null) }
+  var lastResult by remember { mutableStateOf<ShareResult?>(null) }
 
   ToolkitDemoPage(
-    description = item.description,
-    code = item.code,
+    descriptionRes = item.descriptionRes,
+    codeRes = item.codeRes,
     modifier = modifier,
   ) {
     OutlinedTextField(
       value = text,
       onValueChange = { text = it },
-      label = { Text(text = "文本") },
+      label = { Text(text = stringResource(Res.string.share_text_label)) },
       modifier = Modifier.fillMaxWidth(),
     )
     OutlinedTextField(
       value = url,
       onValueChange = { url = it },
-      label = { Text(text = "链接") },
+      label = { Text(text = stringResource(Res.string.share_url_label)) },
       modifier = Modifier.fillMaxWidth(),
     )
     FlowRow(
@@ -55,38 +77,38 @@ fun ToolkitShareScreen(modifier: Modifier = Modifier) {
       Button(onClick = {
         val success = shareToolkit.shareText(
           text = text,
-          options = ShareOptions(title = "分享到"),
+          options = ShareOptions(title = shareTitle),
         )
-        lastResult = if (success) "分享文本成功" else "分享文本失败"
+        lastResult = if (success) ShareResult.TextSuccess else ShareResult.TextFailure
       }) {
-        Text(text = "分享文本")
+        Text(text = stringResource(Res.string.action_share_text))
       }
       OutlinedButton(onClick = {
         val success = shareToolkit.shareUrl(
           url = url,
-          options = ShareOptions(title = "分享到"),
+          options = ShareOptions(title = shareTitle),
         )
-        lastResult = if (success) "分享链接成功" else "分享链接失败"
+        lastResult = if (success) ShareResult.UrlSuccess else ShareResult.UrlFailure
       }) {
-        Text(text = "分享链接")
+        Text(text = stringResource(Res.string.action_share_url))
       }
       OutlinedButton(onClick = {
         val bytes = appLogoBytes
         if (bytes == null) {
-          lastResult = "应用 Logo 未找到"
+          lastResult = ShareResult.LogoMissing
           return@OutlinedButton
         }
         val success = shareToolkit.shareImage(
           bytes = bytes,
           mimeType = "image/png",
           options = ShareOptions(
-            title = "分享到",
+            title = shareTitle,
             excludedActivities = listOf(ShareExcludedActivity.COPY_TO_PASTEBOARD),
           ),
         )
-        lastResult = if (success) "分享图片成功" else "分享图片失败"
+        lastResult = if (success) ShareResult.ImageSuccess else ShareResult.ImageFailure
       }) {
-        Text(text = "分享图片")
+        Text(text = stringResource(Res.string.action_share_image))
       }
       OutlinedButton(onClick = {
         val contents = buildList {
@@ -100,13 +122,45 @@ fun ToolkitShareScreen(modifier: Modifier = Modifier) {
         }
         val success = shareToolkit.share(
           contents = contents,
-          options = ShareOptions(title = "分享到"),
+          options = ShareOptions(title = shareTitle),
         )
-        lastResult = if (success) "分享组合成功" else "分享组合失败"
+        lastResult = if (success) ShareResult.CombinationSuccess else ShareResult.CombinationFailure
       }) {
-        Text(text = "分享组合")
+        Text(text = stringResource(Res.string.action_share_combination))
       }
     }
-    StatusText(value = lastResult?.let { "结果: $it" } ?: "结果: -")
+    StatusText(
+      value = stringResource(
+        Res.string.result_format,
+        lastResult?.displayText() ?: "-",
+      ),
+    )
+  }
+}
+
+private enum class ShareResult {
+  TextSuccess,
+  TextFailure,
+  UrlSuccess,
+  UrlFailure,
+  ImageSuccess,
+  ImageFailure,
+  CombinationSuccess,
+  CombinationFailure,
+  LogoMissing,
+}
+
+@Composable
+private fun ShareResult.displayText(): String {
+  return when (this) {
+    ShareResult.TextSuccess -> stringResource(Res.string.share_text_success)
+    ShareResult.TextFailure -> stringResource(Res.string.share_text_failure)
+    ShareResult.UrlSuccess -> stringResource(Res.string.share_url_success)
+    ShareResult.UrlFailure -> stringResource(Res.string.share_url_failure)
+    ShareResult.ImageSuccess -> stringResource(Res.string.share_image_success)
+    ShareResult.ImageFailure -> stringResource(Res.string.share_image_failure)
+    ShareResult.CombinationSuccess -> stringResource(Res.string.share_combination_success)
+    ShareResult.CombinationFailure -> stringResource(Res.string.share_combination_failure)
+    ShareResult.LogoMissing -> stringResource(Res.string.app_logo_not_found)
   }
 }

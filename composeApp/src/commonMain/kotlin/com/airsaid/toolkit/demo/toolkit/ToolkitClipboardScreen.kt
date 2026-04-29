@@ -20,8 +20,31 @@ import com.airsaid.toolkit.ClipboardContent
 import com.airsaid.toolkit.ClipboardSnapshot
 import com.airsaid.toolkit.RichTextFormat
 import com.airsaid.toolkit.Toolkit
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.action_clear
+import com.airsaid.toolkit.demo.resources.action_read
+import com.airsaid.toolkit.demo.resources.action_read_image
+import com.airsaid.toolkit.demo.resources.action_start_monitoring
+import com.airsaid.toolkit.demo.resources.action_stop_monitoring
+import com.airsaid.toolkit.demo.resources.action_write
+import com.airsaid.toolkit.demo.resources.action_write_image
+import com.airsaid.toolkit.demo.resources.action_write_rich_text_uri
+import com.airsaid.toolkit.demo.resources.app_logo_not_found
+import com.airsaid.toolkit.demo.resources.clipboard_default_text
+import com.airsaid.toolkit.demo.resources.clipboard_content_empty
+import com.airsaid.toolkit.demo.resources.clipboard_content_image
+import com.airsaid.toolkit.demo.resources.clipboard_content_rich_text
+import com.airsaid.toolkit.demo.resources.clipboard_content_text
+import com.airsaid.toolkit.demo.resources.clipboard_content_uri
+import com.airsaid.toolkit.demo.resources.clipboard_contents_status
+import com.airsaid.toolkit.demo.resources.clipboard_image_status
+import com.airsaid.toolkit.demo.resources.clipboard_input_label
+import com.airsaid.toolkit.demo.resources.clipboard_text_status
+import com.airsaid.toolkit.demo.resources.image_info_format
+import com.airsaid.toolkit.demo.resources.image_not_found
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -30,10 +53,11 @@ fun ToolkitClipboardScreen(modifier: Modifier = Modifier) {
   val scope = rememberCoroutineScope()
   val clipboard = remember { Toolkit.clipboard() }
   val appLogoBytes = rememberAppLogoBytes()
-  var inputText by remember { mutableStateOf("Toolkit Demo") }
+  val defaultInputText = stringResource(Res.string.clipboard_default_text)
+  var inputText by remember(defaultInputText) { mutableStateOf(defaultInputText) }
   var latestText by remember { mutableStateOf<String?>(null) }
   var latestSnapshot by remember { mutableStateOf<ClipboardSnapshot?>(null) }
-  var latestImageInfo by remember { mutableStateOf<String?>(null) }
+  var latestImageMissingLogo by remember { mutableStateOf(false) }
   var isObserving by remember { mutableStateOf(false) }
 
   LaunchedEffect(isObserving) {
@@ -41,20 +65,20 @@ fun ToolkitClipboardScreen(modifier: Modifier = Modifier) {
     clipboard.observeClipboard().collect { snapshot ->
       latestSnapshot = snapshot
       latestText = snapshot.firstTextOrNull()
-      latestImageInfo = snapshot.imageInfo()
+      latestImageMissingLogo = false
     }
   }
 
   ToolkitDemoPage(
-    description = item.description,
-    code = item.code,
+    descriptionRes = item.descriptionRes,
+    codeRes = item.codeRes,
     modifier = modifier,
   ) {
     OutlinedTextField(
       value = inputText,
       onValueChange = { inputText = it },
       modifier = Modifier.fillMaxWidth(),
-      label = { Text(text = "写入内容") },
+      label = { Text(text = stringResource(Res.string.clipboard_input_label)) },
     )
     FlowRow(
       modifier = Modifier.fillMaxWidth(),
@@ -64,7 +88,7 @@ fun ToolkitClipboardScreen(modifier: Modifier = Modifier) {
       Button(onClick = {
         clipboard.setText(inputText)
       }) {
-        Text(text = "写入")
+        Text(text = stringResource(Res.string.action_write))
       }
       OutlinedButton(onClick = {
         clipboard.setContents(
@@ -78,56 +102,71 @@ fun ToolkitClipboardScreen(modifier: Modifier = Modifier) {
           )
         )
       }) {
-        Text(text = "写入富文本与 URI")
+        Text(text = stringResource(Res.string.action_write_rich_text_uri))
       }
       OutlinedButton(onClick = {
         val bytes = appLogoBytes
         if (bytes == null) {
-          latestImageInfo = "应用 Logo 未找到"
+          latestImageMissingLogo = true
           return@OutlinedButton
         }
+        latestImageMissingLogo = false
         clipboard.setContents(
           listOf(ClipboardContent.Image(bytes, "image/png"))
         )
       }) {
-        Text(text = "写入图片")
+        Text(text = stringResource(Res.string.action_write_image))
       }
       OutlinedButton(onClick = {
         scope.launch {
           val snapshot = clipboard.getSnapshot()
           latestSnapshot = snapshot
           latestText = snapshot.firstTextOrNull()
-          latestImageInfo = snapshot.imageInfo()
+          latestImageMissingLogo = false
         }
       }) {
-        Text(text = "读取")
+        Text(text = stringResource(Res.string.action_read))
       }
       OutlinedButton(onClick = {
         scope.launch {
           val snapshot = clipboard.getSnapshot()
           latestSnapshot = snapshot
-          latestImageInfo = snapshot.imageInfo()
+          latestImageMissingLogo = false
         }
       }) {
-        Text(text = "读取图片")
+        Text(text = stringResource(Res.string.action_read_image))
       }
       OutlinedButton(onClick = {
         clipboard.clear()
       }) {
-        Text(text = "清空")
+        Text(text = stringResource(Res.string.action_clear))
       }
       OutlinedButton(onClick = {
         isObserving = true
       }) {
-        Text(text = "开始监听")
+        Text(text = stringResource(Res.string.action_start_monitoring))
       }
       OutlinedButton(onClick = { isObserving = false }) {
-        Text(text = "停止监听")
+        Text(text = stringResource(Res.string.action_stop_monitoring))
       }
   }
-  StatusText(value = latestText?.let { "剪贴板文本: $it" } ?: "剪贴板文本: -")
-  StatusText(value = latestImageInfo?.let { "剪贴板图片: $it" } ?: "剪贴板图片: -")
-  StatusText(value = latestSnapshot?.let { "剪贴板内容: ${it.describe()}" } ?: "剪贴板内容: -")
+  StatusText(value = stringResource(Res.string.clipboard_text_status, latestText ?: "-"))
+  StatusText(
+    value = stringResource(
+      Res.string.clipboard_image_status,
+      when {
+        latestImageMissingLogo -> stringResource(Res.string.app_logo_not_found)
+        latestSnapshot != null -> latestSnapshot.imageInfo()
+        else -> "-"
+      },
+    ),
+  )
+  StatusText(
+    value = stringResource(
+      Res.string.clipboard_contents_status,
+      latestSnapshot?.describe() ?: "-",
+    ),
+  )
 }
 }
 
@@ -141,16 +180,22 @@ private fun ClipboardSnapshot.firstTextOrNull(): String? {
   }
 }
 
+@Composable
 private fun ClipboardSnapshot.describe(): String {
-  if (contents.isEmpty()) return "空"
-  return contents.joinToString(separator = ", ") { content ->
-    when (content) {
-      is ClipboardContent.Text -> "文本"
-      is ClipboardContent.RichText -> "富文本(${content.format})"
-      is ClipboardContent.Uri -> "URI"
-      is ClipboardContent.Image -> "图片"
+  if (contents.isEmpty()) return stringResource(Res.string.clipboard_content_empty)
+  val labels = mutableListOf<String>()
+  for (content in contents) {
+    labels += when (content) {
+      is ClipboardContent.Text -> stringResource(Res.string.clipboard_content_text)
+      is ClipboardContent.RichText -> stringResource(
+        Res.string.clipboard_content_rich_text,
+        content.format,
+      )
+      is ClipboardContent.Uri -> stringResource(Res.string.clipboard_content_uri)
+      is ClipboardContent.Image -> stringResource(Res.string.clipboard_content_image)
     }
   }
+  return labels.joinToString(separator = ", ")
 }
 
 private fun ClipboardSnapshot.firstImageOrNull(): ClipboardContent.Image? {
@@ -159,8 +204,9 @@ private fun ClipboardSnapshot.firstImageOrNull(): ClipboardContent.Image? {
   }
 }
 
-private fun ClipboardSnapshot.imageInfo(): String {
-  val image = firstImageOrNull() ?: return "未找到图片"
+@Composable
+private fun ClipboardSnapshot?.imageInfo(): String {
+  val image = this?.firstImageOrNull() ?: return stringResource(Res.string.image_not_found)
   val type = image.mimeType ?: "-"
-  return "图片字节: ${image.bytes.size}, 类型: $type"
+  return stringResource(Res.string.image_info_format, image.bytes.size, type)
 }

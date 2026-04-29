@@ -10,16 +10,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ToolkitHomeScreen(
   modifier: Modifier = Modifier,
   onNavigate: (route: String) -> Unit,
 ) {
-  val items = remember { ToolkitDemoItems.all }
+  val items = ToolkitDemoItems.all
   Column(
     modifier = modifier
       .fillMaxSize()
@@ -33,7 +33,7 @@ fun ToolkitHomeScreen(
           .padding(horizontal = 4.dp),
         onClick = { onNavigate(item.route) },
       ) {
-        Text(item.title)
+        Text(stringResource(item.titleRes))
       }
     }
   }

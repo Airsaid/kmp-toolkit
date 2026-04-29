@@ -25,7 +25,33 @@ import com.airsaid.toolkit.FilePickerOptions
 import com.airsaid.toolkit.FileSaveOptions
 import com.airsaid.toolkit.PlatformFile
 import com.airsaid.toolkit.Toolkit
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.action_pick_directory
+import com.airsaid.toolkit.demo.resources.action_pick_file
+import com.airsaid.toolkit.demo.resources.action_pick_files
+import com.airsaid.toolkit.demo.resources.action_save_file
+import com.airsaid.toolkit.demo.resources.file_info_format
+import com.airsaid.toolkit.demo.resources.file_info_read_failed
+import com.airsaid.toolkit.demo.resources.file_info_status
+import com.airsaid.toolkit.demo.resources.file_message_with_name
+import com.airsaid.toolkit.demo.resources.file_multi_select_result
+import com.airsaid.toolkit.demo.resources.file_no_directory_selected
+import com.airsaid.toolkit.demo.resources.file_no_file_selected
+import com.airsaid.toolkit.demo.resources.file_not_run
+import com.airsaid.toolkit.demo.resources.file_not_saved
+import com.airsaid.toolkit.demo.resources.file_picker_title_directory
+import com.airsaid.toolkit.demo.resources.file_picker_title_file
+import com.airsaid.toolkit.demo.resources.file_picker_title_files
+import com.airsaid.toolkit.demo.resources.file_saved_file
+import com.airsaid.toolkit.demo.resources.file_selected_count
+import com.airsaid.toolkit.demo.resources.file_selected_directory
+import com.airsaid.toolkit.demo.resources.file_selected_file
+import com.airsaid.toolkit.demo.resources.result_format
+import com.airsaid.toolkit.demo.resources.unknown_error
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -35,10 +61,14 @@ fun ToolkitFileScreen(modifier: Modifier = Modifier) {
   val scope = rememberCoroutineScope()
   var lastFile by remember { mutableStateOf<PlatformFile?>(null) }
   var lastFiles by remember { mutableStateOf<List<PlatformFile>>(emptyList()) }
-  var lastMessage by remember { mutableStateOf("未执行") }
-  var lastInfo by remember { mutableStateOf<String?>(null) }
-  var lastError by remember { mutableStateOf<String?>(null) }
+  var lastMessage by remember { mutableStateOf<FileMessage>(FileMessage.NotRun) }
+  var lastInfo by remember { mutableStateOf<FileInfo?>(null) }
+  var lastInfoError by remember { mutableStateOf<FileError?>(null) }
+  var lastError by remember { mutableStateOf<FileError?>(null) }
   val infoScrollState = rememberScrollState()
+  val pickFileTitle = stringResource(Res.string.file_picker_title_file)
+  val pickFilesTitle = stringResource(Res.string.file_picker_title_files)
+  val pickDirectoryTitle = stringResource(Res.string.file_picker_title_directory)
 
   fun launchSafely(block: suspend () -> Unit) {
     scope.launch {
@@ -46,28 +76,30 @@ fun ToolkitFileScreen(modifier: Modifier = Modifier) {
       try {
         block()
       } catch (error: Exception) {
-        lastError = error.message ?: "未知错误"
+        lastError = FileError(error.message)
       }
     }
   }
 
   fun updateSingleSelection(
     file: PlatformFile?,
-    selectedMessage: String,
-    emptyMessage: String,
+    selectedMessage: StringResource,
+    emptyMessage: StringResource,
   ) {
     lastFile = file
     lastFiles = emptyList()
-    lastMessage = file?.let { "$selectedMessage: ${it.name}" } ?: emptyMessage
+    lastMessage = file?.let {
+      FileMessage.Named(selectedMessage, it.name)
+    } ?: FileMessage.Plain(emptyMessage)
   }
 
   fun updateMultipleSelection(files: List<PlatformFile>) {
     lastFiles = files
     lastFile = files.firstOrNull()
     lastMessage = if (files.isEmpty()) {
-      "未选择文件"
+      FileMessage.Plain(Res.string.file_no_file_selected)
     } else {
-      "已选择 ${files.size} 个文件"
+      FileMessage.FileCount(files.size)
     }
   }
 
@@ -75,20 +107,23 @@ fun ToolkitFileScreen(modifier: Modifier = Modifier) {
     val file = lastFile
     if (file == null) {
       lastInfo = null
+      lastInfoError = null
       return@LaunchedEffect
     }
     lastInfo = try {
+      lastInfoError = null
       file.withScopedAccess {
         buildFileInfo(it)
       }
     } catch (error: Exception) {
-      "读取文件信息失败: ${error.message}"
+      lastInfoError = FileError(error.message)
+      null
     }
   }
 
   ToolkitDemoPage(
-    description = item.description,
-    code = item.code,
+    descriptionRes = item.descriptionRes,
+    codeRes = item.codeRes,
     modifier = modifier,
   ) {
     FlowRow(
@@ -99,43 +134,43 @@ fun ToolkitFileScreen(modifier: Modifier = Modifier) {
       Button(onClick = {
         launchSafely {
           val picked = fileToolkit.pickFile(
-            FilePickerOptions(title = "选择文件"),
+            FilePickerOptions(title = pickFileTitle),
           )
           updateSingleSelection(
             file = picked,
-            selectedMessage = "已选择文件",
-            emptyMessage = "未选择文件",
+            selectedMessage = Res.string.file_selected_file,
+            emptyMessage = Res.string.file_no_file_selected,
           )
         }
       }) {
-        Text(text = "选择文件")
+        Text(text = stringResource(Res.string.action_pick_file))
       }
       Button(onClick = {
         launchSafely {
           val picked = fileToolkit.pickFiles(
             FilePickerOptions(
-              title = "多选文件",
+              title = pickFilesTitle,
               mode = FilePickerMode.Multiple(maxItems = 3),
             )
           )
           updateMultipleSelection(picked)
         }
       }) {
-        Text(text = "多选文件")
+        Text(text = stringResource(Res.string.action_pick_files))
       }
       Button(onClick = {
         launchSafely {
           val directory = fileToolkit.pickDirectory(
-            DirectoryPickerOptions(title = "选择目录"),
+            DirectoryPickerOptions(title = pickDirectoryTitle),
           )
           updateSingleSelection(
             file = directory,
-            selectedMessage = "已选择目录",
-            emptyMessage = "未选择目录",
+            selectedMessage = Res.string.file_selected_directory,
+            emptyMessage = Res.string.file_no_directory_selected,
           )
         }
       }) {
-        Text(text = "选择目录")
+        Text(text = stringResource(Res.string.action_pick_directory))
       }
       Button(onClick = {
         launchSafely {
@@ -147,12 +182,12 @@ fun ToolkitFileScreen(modifier: Modifier = Modifier) {
           )
           updateSingleSelection(
             file = saved,
-            selectedMessage = "已保存文件",
-            emptyMessage = "未保存文件",
+            selectedMessage = Res.string.file_saved_file,
+            emptyMessage = Res.string.file_not_saved,
           )
         }
       }) {
-        Text(text = "保存文件")
+        Text(text = stringResource(Res.string.action_save_file))
       }
     }
     Column(
@@ -161,36 +196,93 @@ fun ToolkitFileScreen(modifier: Modifier = Modifier) {
         .heightIn(max = 160.dp)
         .verticalScroll(infoScrollState),
     ) {
-      StatusText(value = "结果: $lastMessage")
-      StatusText(value = lastInfo?.let { "文件信息: $it" } ?: "文件信息: -")
-      ErrorText(message = lastError)
+      StatusText(value = stringResource(Res.string.result_format, lastMessage.displayText()))
+      StatusText(
+        value = stringResource(
+          Res.string.file_info_status,
+          lastInfo?.displayText()
+            ?: lastInfoError?.let {
+              stringResource(Res.string.file_info_read_failed, it.displayText())
+            }
+            ?: "-",
+        ),
+      )
+      ErrorText(message = lastError?.displayText())
       if (lastFiles.isNotEmpty()) {
         StatusText(
-          value = "多选结果: ${lastFiles.joinToString { it.name }}",
+          value = stringResource(
+            Res.string.file_multi_select_result,
+            lastFiles.joinToString { it.name },
+          ),
         )
       }
     }
   }
 }
 
-private suspend fun buildFileInfo(file: PlatformFile): String {
-  val size = file.size()
-  val mimeType = file.mimeType() ?: "-"
-  val exists = file.exists()
-  val isDirectory = file.isDirectory()
-  val path = file.path ?: "-"
-  return buildString {
-    append("名称: ")
-    append(file.name)
-    append(", 大小: ")
-    append(size)
-    append(", MIME 类型: ")
-    append(mimeType)
-    append(", 存在: ")
-    append(exists)
-    append(", 目录: ")
-    append(isDirectory)
-    append(", 路径: ")
-    append(path)
+private sealed interface FileMessage {
+  data object NotRun : FileMessage
+  data class Plain(val textRes: StringResource) : FileMessage
+  data class Named(val labelRes: StringResource, val name: String) : FileMessage
+  data class FileCount(val count: Int) : FileMessage
+}
+
+private data class FileInfo(
+  val name: String,
+  val size: Long,
+  val mimeType: String,
+  val exists: Boolean,
+  val isDirectory: Boolean,
+  val path: String,
+)
+
+private data class FileError(
+  val message: String?,
+)
+
+@Composable
+private fun FileMessage.displayText(): String {
+  return when (this) {
+    FileMessage.NotRun -> stringResource(Res.string.file_not_run)
+    is FileMessage.Plain -> stringResource(textRes)
+    is FileMessage.Named -> stringResource(
+      Res.string.file_message_with_name,
+      stringResource(labelRes),
+      name,
+    )
+    is FileMessage.FileCount -> pluralStringResource(
+      Res.plurals.file_selected_count,
+      count,
+      count,
+    )
   }
+}
+
+@Composable
+private fun FileInfo.displayText(): String {
+  return stringResource(
+    Res.string.file_info_format,
+    name,
+    size,
+    mimeType,
+    exists,
+    isDirectory,
+    path,
+  )
+}
+
+@Composable
+private fun FileError.displayText(): String {
+  return message ?: stringResource(Res.string.unknown_error)
+}
+
+private suspend fun buildFileInfo(file: PlatformFile): FileInfo {
+  return FileInfo(
+    name = file.name,
+    size = file.size(),
+    mimeType = file.mimeType() ?: "-",
+    exists = file.exists(),
+    isDirectory = file.isDirectory(),
+    path = file.path ?: "-",
+  )
 }

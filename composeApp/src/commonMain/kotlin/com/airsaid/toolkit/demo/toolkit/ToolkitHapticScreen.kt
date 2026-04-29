@@ -15,7 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.airsaid.toolkit.HapticFeedbackType
 import com.airsaid.toolkit.Toolkit
+import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.haptic_error
+import com.airsaid.toolkit.demo.resources.haptic_selection
+import com.airsaid.toolkit.demo.resources.haptic_success
+import com.airsaid.toolkit.demo.resources.haptic_warning
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -24,8 +30,8 @@ fun ToolkitHapticScreen(modifier: Modifier = Modifier) {
   val haptics = remember { Toolkit.hapticFeedback() }
 
   ToolkitDemoPage(
-    description = item.description,
-    code = item.code,
+    descriptionRes = item.descriptionRes,
+    codeRes = item.codeRes,
     modifier = modifier,
   ) {
     FlowRow(
@@ -36,22 +42,22 @@ fun ToolkitHapticScreen(modifier: Modifier = Modifier) {
       Button(onClick = {
         haptics.perform(HapticFeedbackType.SELECTION)
       }) {
-        Text(text = "选择")
+        Text(text = stringResource(Res.string.haptic_selection))
       }
       OutlinedButton(onClick = {
         haptics.perform(HapticFeedbackType.SUCCESS)
       }) {
-        Text(text = "成功")
+        Text(text = stringResource(Res.string.haptic_success))
       }
       OutlinedButton(onClick = {
         haptics.perform(HapticFeedbackType.WARNING)
       }) {
-        Text(text = "警告")
+        Text(text = stringResource(Res.string.haptic_warning))
       }
       OutlinedButton(onClick = {
         haptics.perform(HapticFeedbackType.ERROR)
       }) {
-        Text(text = "错误")
+        Text(text = stringResource(Res.string.haptic_error))
       }
     }
   }
