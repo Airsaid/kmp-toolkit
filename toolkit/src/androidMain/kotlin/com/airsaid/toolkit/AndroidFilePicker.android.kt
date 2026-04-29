@@ -25,8 +25,9 @@ internal class AndroidFilePicker(
       title = options.title,
       initialUri = options.startLocation?.asInitialUri(),
     )
-    val uri = launch(OpenDocumentContract(), params) ?: return null
-    persistPermission(uri)
+    val result = launch(OpenDocumentContract(), params) ?: return null
+    val uri = result.uri ?: return null
+    persistPermission(uri, result.grantFlags)
     return PlatformFile(context, uri)
   }
 
@@ -37,9 +38,10 @@ internal class AndroidFilePicker(
       title = options.title,
       initialUri = options.startLocation?.asInitialUri(),
     )
-    val uris = launch(OpenMultipleDocumentsContract(), params).orEmpty()
+    val result = launch(OpenMultipleDocumentsContract(), params)
+    val uris = result?.uris.orEmpty()
     val limited = options.mode.limit(uris)
-    limited.forEach { persistPermission(it) }
+    limited.forEach { persistPermission(it, result?.grantFlags ?: 0) }
     return limited.map { PlatformFile(context, it) }
   }
 
@@ -48,8 +50,9 @@ internal class AndroidFilePicker(
       title = options.title,
       initialUri = options.startLocation?.asInitialUri(),
     )
-    val uri = launch(OpenDocumentTreeContract(), params) ?: return null
-    persistPermission(uri)
+    val result = launch(OpenDocumentTreeContract(), params) ?: return null
+    val uri = result.uri ?: return null
+    persistPermission(uri, result.grantFlags)
     return PlatformFile(context, uri)
   }
 
@@ -62,14 +65,16 @@ internal class AndroidFilePicker(
       initialUri = options.directory?.asInitialUri(),
       mimeType = mimeType,
     )
-    val uri = launch(CreateDocumentContract(), params) ?: return null
-    persistPermission(uri)
+    val result = launch(CreateDocumentContract(), params) ?: return null
+    val uri = result.uri ?: return null
+    persistPermission(uri, result.grantFlags)
     return PlatformFile(context, uri)
   }
 
-  private fun persistPermission(uri: Uri) {
+  private fun persistPermission(uri: Uri, grantFlags: Int) {
     val resolver = context.contentResolver
-    val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+    val flags = grantFlags and PERSISTABLE_PERMISSION_FLAGS
+    if (flags == 0) return
     try {
       resolver.takePersistableUriPermission(uri, flags)
     } catch (_: SecurityException) {
@@ -102,6 +107,19 @@ internal class AndroidFilePicker(
   }
 }
 
+private const val PERSISTABLE_PERMISSION_FLAGS =
+  Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+
+private data class DocumentResult(
+  val uri: Uri?,
+  val grantFlags: Int,
+)
+
+private data class MultipleDocumentResult(
+  val uris: List<Uri>,
+  val grantFlags: Int,
+)
+
 private data class OpenDocumentParams(
   val mimeTypes: List<String>,
   val title: String?,
@@ -120,33 +138,45 @@ private data class CreateDocumentParams(
   val mimeType: String?,
 )
 
-private class OpenDocumentContract : ActivityResultContract<OpenDocumentParams, Uri?>() {
+private class OpenDocumentContract : ActivityResultContract<OpenDocumentParams, DocumentResult>() {
   override fun createIntent(context: Context, input: OpenDocumentParams): Intent {
     return buildOpenDocumentIntent(input, allowMultiple = false)
   }
 
-  override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
-    if (resultCode != Activity.RESULT_OK) return null
-    return intent?.data
+  override fun parseResult(resultCode: Int, intent: Intent?): DocumentResult {
+    if (resultCode != Activity.RESULT_OK) return DocumentResult(null, 0)
+    return DocumentResult(
+      uri = intent?.data,
+      grantFlags = intent?.flags ?: 0,
+    )
   }
 }
 
-private class OpenMultipleDocumentsContract : ActivityResultContract<OpenDocumentParams, List<Uri>>() {
+private class OpenMultipleDocumentsContract :
+  ActivityResultContract<OpenDocumentParams, MultipleDocumentResult>() {
   override fun createIntent(context: Context, input: OpenDocumentParams): Intent {
     return buildOpenDocumentIntent(input, allowMultiple = true)
   }
 
-  override fun parseResult(resultCode: Int, intent: Intent?): List<Uri> {
-    if (resultCode != Activity.RESULT_OK || intent == null) return emptyList()
-    val clipData = intent.clipData
-    if (clipData != null) {
-      return List(clipData.itemCount) { index -> clipData.getItemAt(index).uri }
+  override fun parseResult(resultCode: Int, intent: Intent?): MultipleDocumentResult {
+    if (resultCode != Activity.RESULT_OK || intent == null) {
+      return MultipleDocumentResult(emptyList(), 0)
     }
-    return intent.data?.let { listOf(it) } ?: emptyList()
+    val clipData = intent.clipData
+    val uris = if (clipData != null) {
+      List(clipData.itemCount) { index -> clipData.getItemAt(index).uri }
+    } else {
+      intent.data?.let { listOf(it) } ?: emptyList()
+    }
+    return MultipleDocumentResult(
+      uris = uris,
+      grantFlags = intent.flags,
+    )
   }
 }
 
-private class OpenDocumentTreeContract : ActivityResultContract<OpenDocumentTreeParams, Uri?>() {
+private class OpenDocumentTreeContract :
+  ActivityResultContract<OpenDocumentTreeParams, DocumentResult>() {
   override fun createIntent(context: Context, input: OpenDocumentTreeParams): Intent {
     return Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
       addFlags(
@@ -161,13 +191,16 @@ private class OpenDocumentTreeContract : ActivityResultContract<OpenDocumentTree
     }
   }
 
-  override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
-    if (resultCode != Activity.RESULT_OK) return null
-    return intent?.data
+  override fun parseResult(resultCode: Int, intent: Intent?): DocumentResult {
+    if (resultCode != Activity.RESULT_OK) return DocumentResult(null, 0)
+    return DocumentResult(
+      uri = intent?.data,
+      grantFlags = intent?.flags ?: 0,
+    )
   }
 }
 
-private class CreateDocumentContract : ActivityResultContract<CreateDocumentParams, Uri?>() {
+private class CreateDocumentContract : ActivityResultContract<CreateDocumentParams, DocumentResult>() {
   override fun createIntent(context: Context, input: CreateDocumentParams): Intent {
     return Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
       addCategory(Intent.CATEGORY_OPENABLE)
@@ -184,9 +217,12 @@ private class CreateDocumentContract : ActivityResultContract<CreateDocumentPara
     }
   }
 
-  override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
-    if (resultCode != Activity.RESULT_OK) return null
-    return intent?.data
+  override fun parseResult(resultCode: Int, intent: Intent?): DocumentResult {
+    if (resultCode != Activity.RESULT_OK) return DocumentResult(null, 0)
+    return DocumentResult(
+      uri = intent?.data,
+      grantFlags = intent?.flags ?: 0,
+    )
   }
 }
 
