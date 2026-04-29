@@ -30,7 +30,7 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 fun NetworkMonitorScreen(modifier: Modifier = Modifier) {
-  val networkMonitor = remember { Toolkit.networkMonitor() }
+  val networkMonitor = remember { Toolkit.network() }
   val networkStatus by networkMonitor.observeNetworkStatus()
     .collectAsState(initial = NetworkStatus(false, NetworkType.UNKNOWN))
 

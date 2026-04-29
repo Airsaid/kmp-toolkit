@@ -1,33 +1,27 @@
 package com.airsaid.toolkit
 
 /**
- * Platform-specific context type used by [ToolkitInitializer].
+ * Platform-specific application context used to initialize [Toolkit].
+ *
+ * On Android this is an `android.content.Context`. iOS does not require toolkit initialization.
  */
 expect abstract class ToolkitContext
 
 /**
- * Initializes toolkit dependencies for each platform.
- */
-expect class ToolkitInitializer {
-
-  val context: ToolkitContext?
-
-  constructor(
-    context: ToolkitContext? = null,
-  )
-}
-
-/**
- * Single entry point for initializing the toolkit module.
+ * Single entry point for toolkit platform services.
+ *
+ * Android apps must call [initialize] once before accessing platform-backed services.
+ * iOS apps can use the accessors directly.
  */
 expect object Toolkit {
 
   /**
    * Initializes platform-specific toolkit components.
    *
-   * Android requires initialization before use. iOS does not.
+   * Android uses the first application [context] passed to this function. Repeated calls
+   * are ignored. iOS does not need this call.
    */
-  fun initialize(initializer: ToolkitInitializer)
+  fun initialize(context: ToolkitContext)
 
   /**
    * Returns a shared [ClipboardToolkit] instance.
@@ -37,55 +31,55 @@ expect object Toolkit {
   /**
    * Returns a shared [HapticFeedback] instance.
    */
-  fun hapticFeedback(): HapticFeedback
+  fun haptics(): HapticFeedback
 
   /**
    * Returns a shared [NetworkMonitor] instance.
    */
-  fun networkMonitor(): NetworkMonitor
+  fun network(): NetworkMonitor
 
   /**
    * Returns a shared [KeyboardMonitor] instance.
    */
-  fun keyboardMonitor(): KeyboardMonitor
+  fun keyboard(): KeyboardMonitor
 
   /**
    * Returns a shared [ShareToolkit] instance.
    */
-  fun shareToolkit(): ShareToolkit
+  fun share(): ShareToolkit
 
   /**
    * Returns a shared [AppLifecycleMonitor] instance.
    */
-  fun appLifecycleMonitor(): AppLifecycleMonitor
+  fun lifecycle(): AppLifecycleMonitor
 
   /**
-   * Returns current [AppInfo].
+   * Returns the current app metadata snapshot.
    */
   fun appInfo(): AppInfo
 
   /**
-   * Returns current [DeviceInfo].
+   * Returns the current device metadata snapshot.
    */
   fun deviceInfo(): DeviceInfo
 
   /**
-   * Returns app navigation handler.
+   * Returns the shared app navigation handler.
    */
-  fun appNavigator(): AppNavigator
+  fun navigator(): AppNavigator
 
   /**
    * Returns a shared [FileToolkit] instance.
    */
-  fun fileToolkit(): FileToolkit
+  fun files(): FileToolkit
 
   /**
    * Returns a shared [SensorToolkit] instance.
    */
-  fun sensorToolkit(): SensorToolkit
+  fun sensors(): SensorToolkit
 
   /**
-   * Returns current platform type.
+   * Returns the current platform.
    */
-  fun platformType(): PlatformType
+  fun currentPlatform(): PlatformType
 }

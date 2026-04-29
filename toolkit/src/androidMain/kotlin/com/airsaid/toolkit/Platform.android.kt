@@ -6,7 +6,7 @@ package com.airsaid.toolkit
 actual object Platform {
 
   /**
-   * Current platform type.
+   * Current platform.
    */
-  actual val type: PlatformType = PlatformType.ANDROID
+  actual val current: PlatformType = PlatformType.Android
 }

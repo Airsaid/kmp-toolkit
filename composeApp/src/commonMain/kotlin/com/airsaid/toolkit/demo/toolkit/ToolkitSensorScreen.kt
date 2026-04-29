@@ -65,7 +65,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ToolkitSensorScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.SensorRoute } }
-  val toolkit = remember { Toolkit.sensorToolkit() }
+  val toolkit = remember { Toolkit.sensors() }
   var selectedType by remember { mutableStateOf(SensorType.ACCELEROMETER) }
   var latestEvent by remember { mutableStateOf<SensorEvent?>(null) }
   var availability by remember { mutableStateOf<SensorAvailability?>(null) }

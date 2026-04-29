@@ -34,7 +34,7 @@ internal actual object NetworkMonitorFactory {
     val context = applicationContext
       ?: throw IllegalStateException(
         "NetworkMonitorFactory must be initialized with Context on Android. " +
-            "Call Toolkit.initialize(ToolkitInitializer(context)) first."
+            "Call Toolkit.initialize(context) first."
       )
     return NetworkMonitorImpl(context)
   }

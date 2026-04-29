@@ -44,7 +44,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ToolkitShareScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.ShareRoute } }
-  val shareToolkit = remember { Toolkit.shareToolkit() }
+  val shareToolkit = remember { Toolkit.share() }
   val appLogoBytes = rememberAppLogoBytes()
   val defaultText = stringResource(Res.string.share_default_text)
   val shareTitle = stringResource(Res.string.share_title)

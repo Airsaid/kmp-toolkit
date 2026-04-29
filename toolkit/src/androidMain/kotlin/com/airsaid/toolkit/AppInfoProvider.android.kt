@@ -26,7 +26,7 @@ internal actual object AppInfoProvider {
     val context = applicationContext
       ?: throw IllegalStateException(
         "AppInfoProvider must be initialized with Context on Android. " +
-            "Call Toolkit.initialize(ToolkitInitializer(context)) first."
+            "Call Toolkit.initialize(context) first."
       )
     val packageManager = context.packageManager
     val packageName = context.packageName

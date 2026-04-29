@@ -28,7 +28,7 @@ internal actual object AppLifecycleMonitorFactory {
     val app = application
       ?: throw IllegalStateException(
         "AppLifecycleMonitorFactory must be initialized with Context on Android. " +
-            "Call Toolkit.initialize(ToolkitInitializer(context)) first."
+            "Call Toolkit.initialize(context) first."
       )
     return AppLifecycleMonitorImpl(app)
   }

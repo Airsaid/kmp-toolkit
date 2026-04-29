@@ -43,7 +43,7 @@ internal actual object FileToolkitFactory {
     val context = applicationContext
       ?: throw IllegalStateException(
         "FileToolkitFactory must be initialized with Context on Android. " +
-            "Call Toolkit.initialize(ToolkitInitializer(context)) first."
+            "Call Toolkit.initialize(context) first."
       )
     val picker = AndroidFilePicker(
       activityProvider = { ActivityLifecycleRegistry.getCurrentActivity() },

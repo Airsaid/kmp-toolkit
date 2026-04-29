@@ -4,10 +4,6 @@ import android.content.Context
 
 actual typealias ToolkitContext = Context
 
-actual class ToolkitInitializer actual constructor(
-  actual val context: ToolkitContext?,
-)
-
 actual object Toolkit {
 
   private var isInitialized: Boolean = false
@@ -20,23 +16,23 @@ actual object Toolkit {
   private var fileToolkit: FileToolkit? = null
   private var sensorToolkit: SensorToolkit? = null
 
-  actual fun initialize(initializer: ToolkitInitializer) {
-    val context = initializer.context
-      ?: throw IllegalStateException(
-        "ToolkitInitializer.context is required on Android."
-      )
-    AppInfoProvider.initialize(context)
-    ActivityLifecycleRegistry.initialize(context)
-    AppLifecycleMonitorFactory.initialize(context)
-    ClipboardToolkitFactory.initialize(context)
-    DeviceInfoProvider.initialize(context)
-    HapticFeedbackFactory.initialize(context)
-    NetworkMonitorFactory.initialize(context)
-    AppNavigator.initialize(context)
-    KeyboardMonitorFactory.initialize(context)
-    ShareToolkitFactory.initialize(context)
-    FileToolkitFactory.initialize(context)
-    SensorToolkitFactory.initialize(context)
+  actual fun initialize(context: ToolkitContext) {
+    if (isInitialized) {
+      return
+    }
+    val applicationContext = context.applicationContext ?: context
+    AppInfoProvider.initialize(applicationContext)
+    ActivityLifecycleRegistry.initialize(applicationContext)
+    AppLifecycleMonitorFactory.initialize(applicationContext)
+    ClipboardToolkitFactory.initialize(applicationContext)
+    DeviceInfoProvider.initialize(applicationContext)
+    HapticFeedbackFactory.initialize(applicationContext)
+    NetworkMonitorFactory.initialize(applicationContext)
+    AppNavigator.initialize(applicationContext)
+    KeyboardMonitorFactory.initialize(applicationContext)
+    ShareToolkitFactory.initialize(applicationContext)
+    FileToolkitFactory.initialize(applicationContext)
+    SensorToolkitFactory.initialize(applicationContext)
     isInitialized = true
   }
 
@@ -45,27 +41,27 @@ actual object Toolkit {
     return cached(clipboardToolkit, ClipboardToolkitFactory::create) { clipboardToolkit = it }
   }
 
-  actual fun hapticFeedback(): HapticFeedback {
+  actual fun haptics(): HapticFeedback {
     ensureInitialized()
     return cached(hapticFeedback, HapticFeedbackFactory::create) { hapticFeedback = it }
   }
 
-  actual fun networkMonitor(): NetworkMonitor {
+  actual fun network(): NetworkMonitor {
     ensureInitialized()
     return cached(networkMonitor, NetworkMonitorFactory::create) { networkMonitor = it }
   }
 
-  actual fun keyboardMonitor(): KeyboardMonitor {
+  actual fun keyboard(): KeyboardMonitor {
     ensureInitialized()
     return cached(keyboardMonitor, KeyboardMonitorFactory::create) { keyboardMonitor = it }
   }
 
-  actual fun shareToolkit(): ShareToolkit {
+  actual fun share(): ShareToolkit {
     ensureInitialized()
     return cached(shareToolkit, ShareToolkitFactory::create) { shareToolkit = it }
   }
 
-  actual fun appLifecycleMonitor(): AppLifecycleMonitor {
+  actual fun lifecycle(): AppLifecycleMonitor {
     ensureInitialized()
     return cached(appLifecycleMonitor, AppLifecycleMonitorFactory::create) {
       appLifecycleMonitor = it
@@ -82,30 +78,30 @@ actual object Toolkit {
     return DeviceInfoProvider.getDeviceInfo()
   }
 
-  actual fun appNavigator(): AppNavigator {
+  actual fun navigator(): AppNavigator {
     ensureInitialized()
     return AppNavigator
   }
 
-  actual fun fileToolkit(): FileToolkit {
+  actual fun files(): FileToolkit {
     ensureInitialized()
     return cached(fileToolkit, FileToolkitFactory::create) { fileToolkit = it }
   }
 
-  actual fun sensorToolkit(): SensorToolkit {
+  actual fun sensors(): SensorToolkit {
     ensureInitialized()
     return cached(sensorToolkit, SensorToolkitFactory::create) { sensorToolkit = it }
   }
 
-  actual fun platformType(): PlatformType {
-    return Platform.type
+  actual fun currentPlatform(): PlatformType {
+    return Platform.current
   }
 
   private fun ensureInitialized() {
     if (!isInitialized) {
       throw IllegalStateException(
         "Toolkit has not been initialized on Android. " +
-            "Call Toolkit.initialize(ToolkitInitializer(context)) first."
+            "Call Toolkit.initialize(context) first."
       )
     }
   }

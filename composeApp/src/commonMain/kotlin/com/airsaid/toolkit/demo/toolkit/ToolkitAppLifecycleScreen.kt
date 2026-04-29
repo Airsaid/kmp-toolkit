@@ -27,7 +27,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 @Composable
 fun ToolkitAppLifecycleScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.AppLifecycleRoute } }
-  val monitor = remember { Toolkit.appLifecycleMonitor() }
+  val monitor = remember { Toolkit.lifecycle() }
   var isObserving by remember { mutableStateOf(false) }
   var latestStatus by remember { mutableStateOf<AppLifecycleStatus?>(null) }
 

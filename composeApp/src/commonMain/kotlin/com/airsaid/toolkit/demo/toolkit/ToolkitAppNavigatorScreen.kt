@@ -1,6 +1,7 @@
 package com.airsaid.toolkit.demo.toolkit
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
@@ -10,8 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import com.airsaid.toolkit.PlatformType
 import com.airsaid.toolkit.Toolkit
 import com.airsaid.toolkit.demo.resources.Res
 import com.airsaid.toolkit.demo.resources.action_app_details
@@ -25,15 +24,16 @@ import com.airsaid.toolkit.demo.resources.action_system_settings
 import com.airsaid.toolkit.demo.resources.email_body_describe_issue
 import com.airsaid.toolkit.demo.resources.email_subject_feedback
 import com.airsaid.toolkit.demo.resources.sms_body_hello
+import com.airsaid.toolkit.isIos
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ToolkitAppNavigatorScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.AppNavigatorRoute } }
-  val navigator = remember { Toolkit.appNavigator() }
+  val navigator = remember { Toolkit.navigator() }
   val appStoreId = remember {
-    if (Toolkit.platformType() == PlatformType.IOS) {
+    if (Toolkit.currentPlatform().isIos()) {
       "123456789"
     } else {
       "com.example.app"

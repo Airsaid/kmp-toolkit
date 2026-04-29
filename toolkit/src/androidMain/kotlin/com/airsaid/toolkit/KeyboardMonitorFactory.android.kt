@@ -37,7 +37,7 @@ internal actual object KeyboardMonitorFactory {
     if (!isInitialized) {
       throw IllegalStateException(
         "KeyboardMonitorFactory must be initialized with Context on Android. " +
-            "Call Toolkit.initialize(ToolkitInitializer(context)) first."
+            "Call Toolkit.initialize(context) first."
       )
     }
     return KeyboardMonitorRouter()

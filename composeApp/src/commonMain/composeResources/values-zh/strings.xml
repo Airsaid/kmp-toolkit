@@ -3,7 +3,7 @@
 
   <string name="demo_app_lifecycle_title">应用生命周期监听</string>
   <string name="demo_app_lifecycle_description">监听前后台、可见性与冷/热启动状态。</string>
-  <string name="demo_app_lifecycle_code"><![CDATA[val monitor = Toolkit.appLifecycleMonitor()
+  <string name="demo_app_lifecycle_code"><![CDATA[val monitor = Toolkit.lifecycle()
 monitor.startMonitoring()
 scope.launch {
   monitor.observeAppLifecycle().collect { status ->
@@ -47,7 +47,7 @@ scope.launch {
 clipboard.clear()]]></string>
   <string name="demo_haptic_title">触感反馈</string>
   <string name="demo_haptic_description">触发选择、成功、警告与错误反馈。</string>
-  <string name="demo_haptic_code"><![CDATA[val haptics = Toolkit.hapticFeedback()
+  <string name="demo_haptic_code"><![CDATA[val haptics = Toolkit.haptics()
 if (haptics.isSupported()) {
   haptics.perform(HapticFeedbackType.SELECTION)
 }
@@ -56,7 +56,7 @@ haptics.perform(HapticFeedbackType.WARNING)
 haptics.perform(HapticFeedbackType.ERROR)]]></string>
   <string name="demo_network_title">网络状态监听</string>
   <string name="demo_network_description">监听网络连接状态与类型变化。</string>
-  <string name="demo_network_code"><![CDATA[val monitor = Toolkit.networkMonitor()
+  <string name="demo_network_code"><![CDATA[val monitor = Toolkit.network()
 monitor.startMonitoring()
 scope.launch {
   monitor.observeNetworkStatus().collect { status ->
@@ -72,7 +72,7 @@ val isWifi = status.type == NetworkType.WIFI
 monitor.stopMonitoring()]]></string>
   <string name="demo_sensor_title">传感器监听</string>
   <string name="demo_sensor_description">使用 SensorToolkit 监听加速度计、陀螺仪与设备姿态等传感器。</string>
-  <string name="demo_sensor_code"><![CDATA[val sensors = Toolkit.sensorToolkit()
+  <string name="demo_sensor_code"><![CDATA[val sensors = Toolkit.sensors()
 if (sensors.isAvailable(SensorType.ACCELEROMETER).isAvailable) {
   scope.launch {
     sensors.observe(
@@ -90,7 +90,7 @@ if (sensors.isAvailable(SensorType.ACCELEROMETER).isAvailable) {
 val snapshot = sensors.getSnapshot(SensorType.GYROSCOPE)]]></string>
   <string name="demo_app_navigator_title">应用级跳转</string>
   <string name="demo_app_navigator_description">跳转系统设置、应用详情、通知设置、邮件/拨号/短信、应用商店详情与链接。</string>
-  <string name="demo_app_navigator_code"><![CDATA[val navigator = Toolkit.appNavigator()
+  <string name="demo_app_navigator_code"><![CDATA[val navigator = Toolkit.navigator()
 val openedSystem = navigator.navigateToSystemSettings()
 val openedApp = navigator.navigateToAppDetails()
 val openedNotifications = navigator.navigateToNotificationSettings()
@@ -108,7 +108,7 @@ val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
 val openedUrl = navigator.navigateToUrl("https://example.com")]]></string>
   <string name="demo_file_title">文件选择与保存</string>
   <string name="demo_file_description">选择文件、选择目录、多选文件与保存文件。</string>
-  <string name="demo_file_code"><![CDATA[val files = Toolkit.fileToolkit()
+  <string name="demo_file_code"><![CDATA[val files = Toolkit.files()
 val picked = files.pickFile(
   FilePickerOptions(
     title = "选择文件",
@@ -132,7 +132,7 @@ val saved = files.saveFile(
 )]]></string>
   <string name="demo_share_title">系统分享</string>
   <string name="demo_share_description">调起系统分享面板，分享文本、链接与图片。</string>
-  <string name="demo_share_code"><![CDATA[Toolkit.shareToolkit().share(
+  <string name="demo_share_code"><![CDATA[Toolkit.share().share(
   contents = listOf(
     ShareContent.Text("hello"),
     ShareContent.Url("https://example.com"),
@@ -163,18 +163,19 @@ println(device.timeZone.offsetMinutes)
 println(device.locale.current.tag)
 println(device.locale.preferred)]]></string>
   <string name="demo_platform_title">平台判断</string>
-  <string name="demo_platform_description">在 common 代码中判断 Platform 类型。</string>
-  <string name="demo_platform_code"><![CDATA[when (Toolkit.platformType()) {
-  PlatformType.ANDROID -> {
+  <string name="demo_platform_description">在 common 代码中判断当前平台。</string>
+  <string name="demo_platform_code"><![CDATA[val platform = Toolkit.currentPlatform()
 
-  }
-  PlatformType.IOS -> {
+if (platform.isAndroid()) {
 
-  }
+}
+
+if (platform.isIos()) {
+
 }]]></string>
   <string name="demo_keyboard_title">键盘状态监听</string>
   <string name="demo_keyboard_description">监听软键盘可见性与高度变化。</string>
-  <string name="demo_keyboard_code"><![CDATA[val keyboardMonitor = Toolkit.keyboardMonitor()
+  <string name="demo_keyboard_code"><![CDATA[val keyboardMonitor = Toolkit.keyboard()
 keyboardMonitor.startMonitoring()
 scope.launch {
   keyboardMonitor.observeKeyboardStatus().collect { status ->
@@ -341,6 +342,6 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="device_current_language">当前语言</string>
   <string name="device_preferred_languages">首选语言</string>
 
-  <string name="action_read_platform_type">读取平台类型</string>
+  <string name="action_read_platform_type">读取平台</string>
   <string name="platform_current_format">当前平台: %1$s</string>
 </resources>

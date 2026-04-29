@@ -15,9 +15,9 @@ class NetworkMonitorInstrumentedTest {
   @Test
   fun observeWithMultipleCollectors() = runBlocking {
     val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-    Toolkit.initialize(ToolkitInitializer(appContext))
+    Toolkit.initialize(appContext)
 
-    val monitor = Toolkit.networkMonitor()
+    val monitor = Toolkit.network()
     monitor.startMonitoring()
 
     val firstCollector = async {

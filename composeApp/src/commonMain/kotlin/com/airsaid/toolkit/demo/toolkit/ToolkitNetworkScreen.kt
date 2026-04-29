@@ -38,7 +38,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ToolkitNetworkScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.NetworkRoute } }
-  val monitor = remember { Toolkit.networkMonitor() }
+  val monitor = remember { Toolkit.network() }
   var latestStatus by remember { mutableStateOf<NetworkStatus?>(null) }
   var isObserving by remember { mutableStateOf(false) }
 

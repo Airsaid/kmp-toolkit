@@ -57,7 +57,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ToolkitFileScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.FileRoute } }
-  val fileToolkit = remember { Toolkit.fileToolkit() }
+  val fileToolkit = remember { Toolkit.files() }
   val scope = rememberCoroutineScope()
   var lastFile by remember { mutableStateOf<PlatformFile?>(null) }
   var lastFiles by remember { mutableStateOf<List<PlatformFile>>(emptyList()) }

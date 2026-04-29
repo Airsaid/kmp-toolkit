@@ -23,7 +23,7 @@ internal actual object ClipboardToolkitFactory {
     val context = applicationContext
       ?: throw IllegalStateException(
         "ClipboardToolkitFactory must be initialized with Context on Android. " +
-            "Call Toolkit.initialize(ToolkitInitializer(context)) first."
+            "Call Toolkit.initialize(context) first."
       )
     return ClipboardToolkitImpl(context)
   }

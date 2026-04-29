@@ -86,7 +86,7 @@ internal actual object DeviceInfoProvider {
     return applicationContext
       ?: throw IllegalStateException(
         "DeviceInfoProvider must be initialized with Context on Android. " +
-            "Call Toolkit.initialize(ToolkitInitializer(context)) first."
+            "Call Toolkit.initialize(context) first."
       )
   }
 }

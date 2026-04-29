@@ -36,19 +36,17 @@ Android apps must initialize the toolkit before using platform-backed APIs such 
 class DemoApp : Application() {
   override fun onCreate() {
     super.onCreate()
-    Toolkit.initialize(
-      ToolkitInitializer(applicationContext)
-    )
+    Toolkit.initialize(applicationContext)
   }
 }
 ```
 
 ## App Lifecycle
 
-Use `Toolkit.appLifecycleMonitor()` to observe foreground/background state and start type from shared code.
+Use `Toolkit.lifecycle()` to observe foreground/background state and start type from shared code.
 
 ```kotlin
-val monitor = Toolkit.appLifecycleMonitor()
+val monitor = Toolkit.lifecycle()
 monitor.startMonitoring()
 
 scope.launch {
@@ -149,10 +147,10 @@ Android clipboard and file-backed sharing use a `FileProvider` authority based o
 
 ## Network
 
-Use `Toolkit.networkMonitor()` to observe network connectivity and network type changes.
+Use `Toolkit.network()` to observe network connectivity and network type changes.
 
 ```kotlin
-val monitor = Toolkit.networkMonitor()
+val monitor = Toolkit.network()
 monitor.startMonitoring()
 
 scope.launch {
@@ -176,10 +174,10 @@ Android declares `ACCESS_NETWORK_STATE` and `ACCESS_WIFI_STATE` for this feature
 
 ## Keyboard
 
-Use `Toolkit.keyboardMonitor()` to observe soft keyboard visibility and height changes.
+Use `Toolkit.keyboard()` to observe soft keyboard visibility and height changes.
 
 ```kotlin
-val keyboardMonitor = Toolkit.keyboardMonitor()
+val keyboardMonitor = Toolkit.keyboard()
 keyboardMonitor.startMonitoring()
 
 scope.launch {
@@ -201,10 +199,10 @@ Keyboard height is reported in platform pixels and may be `0` when the keyboard 
 
 ## Haptics
 
-Use `Toolkit.hapticFeedback()` to trigger common haptic feedback patterns.
+Use `Toolkit.haptics()` to trigger common haptic feedback patterns.
 
 ```kotlin
-val haptics = Toolkit.hapticFeedback()
+val haptics = Toolkit.haptics()
 
 if (haptics.isSupported()) {
   haptics.perform(HapticFeedbackType.SELECTION)
@@ -219,10 +217,10 @@ haptics.perform(HapticFeedbackType.ERROR)
 
 ## Sensors
 
-Use `Toolkit.sensorToolkit()` to check sensor availability, observe sensor events, and request snapshots.
+Use `Toolkit.sensors()` to check sensor availability, observe sensor events, and request snapshots.
 
 ```kotlin
-val sensors = Toolkit.sensorToolkit()
+val sensors = Toolkit.sensors()
 val availability = sensors.isAvailable(SensorType.ACCELEROMETER)
 
 if (availability.isAvailable) {
@@ -250,10 +248,10 @@ The shared model includes many sensor types. Platform availability varies; check
 
 ## App Navigation
 
-Use `Toolkit.appNavigator()` to open common system destinations from shared code.
+Use `Toolkit.navigator()` to open common system destinations from shared code.
 
 ```kotlin
-val navigator = Toolkit.appNavigator()
+val navigator = Toolkit.navigator()
 
 val openedSystem = navigator.navigateToSystemSettings()
 val openedApp = navigator.navigateToAppDetails()
@@ -276,10 +274,10 @@ val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
 
 ## Share
 
-Use `Toolkit.shareToolkit()` to present the system share sheet for text, URLs, images, and files.
+Use `Toolkit.share()` to present the system share sheet for text, URLs, images, and files.
 
 ```kotlin
-val shareToolkit = Toolkit.shareToolkit()
+val shareToolkit = Toolkit.share()
 
 shareToolkit.shareText(
   text = "hello",
@@ -309,10 +307,10 @@ shareToolkit.share(
 
 ## File Picking and Saving
 
-Use `Toolkit.fileToolkit()` to open platform file pickers, directory pickers, and save destinations. Android uses the Storage Access Framework, and iOS uses `UIDocumentPicker`.
+Use `Toolkit.files()` to open platform file pickers, directory pickers, and save destinations. Android uses the Storage Access Framework, and iOS uses `UIDocumentPicker`.
 
 ```kotlin
-val files = Toolkit.fileToolkit()
+val files = Toolkit.files()
 
 val picked = files.pickFile(
   FilePickerOptions(
@@ -357,18 +355,19 @@ if (file != null) {
 
 Use `withScopedAccess { ... }` for iOS security-scoped file access when you need to work with the selected file beyond simple metadata reads.
 
-## Platform Type
+## Platform
 
-Use `Toolkit.platformType()` for small platform branches that must stay in common code.
+Use `Toolkit.currentPlatform()` for small platform branches that must stay in common code.
 
 ```kotlin
-when (Toolkit.platformType()) {
-  PlatformType.ANDROID -> {
-    // Android-specific shared-code branch.
-  }
-  PlatformType.IOS -> {
-    // iOS-specific shared-code branch.
-  }
+val platform = Toolkit.currentPlatform()
+
+if (platform.isAndroid()) {
+  // Android-specific shared-code branch.
+}
+
+if (platform.isIos()) {
+  // iOS-specific shared-code branch.
 }
 ```
 

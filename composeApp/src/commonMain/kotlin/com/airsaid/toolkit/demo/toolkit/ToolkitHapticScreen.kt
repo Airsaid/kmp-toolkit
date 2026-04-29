@@ -27,7 +27,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ToolkitHapticScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.HapticRoute } }
-  val haptics = remember { Toolkit.hapticFeedback() }
+  val haptics = remember { Toolkit.haptics() }
 
   ToolkitDemoPage(
     descriptionRes = item.descriptionRes,

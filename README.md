@@ -52,9 +52,7 @@ Android apps must initialize the toolkit before using platform-backed APIs. iOS 
 class DemoApp : Application() {
   override fun onCreate() {
     super.onCreate()
-    Toolkit.initialize(
-      ToolkitInitializer(applicationContext)
-    )
+    Toolkit.initialize(applicationContext)
   }
 }
 ```
@@ -68,13 +66,13 @@ println(appInfo.versionName)
 val device = Toolkit.deviceInfo()
 println(device.systemVersion)
 
-val networkMonitor = Toolkit.networkMonitor()
+val networkMonitor = Toolkit.network()
 networkMonitor.startMonitoring()
 
 val clipboard = Toolkit.clipboard()
 clipboard.setText("hello")
 
-val haptics = Toolkit.hapticFeedback()
+val haptics = Toolkit.haptics()
 haptics.perform(HapticFeedbackType.SUCCESS)
 ```
 Detailed usage guide: [toolkit/README.md](toolkit/README.md)

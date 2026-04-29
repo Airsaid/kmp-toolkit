@@ -3,7 +3,7 @@
 
   <string name="demo_app_lifecycle_title">App lifecycle monitor</string>
   <string name="demo_app_lifecycle_description">Observe foreground, visibility, and cold/warm start state.</string>
-  <string name="demo_app_lifecycle_code"><![CDATA[val monitor = Toolkit.appLifecycleMonitor()
+  <string name="demo_app_lifecycle_code"><![CDATA[val monitor = Toolkit.lifecycle()
 monitor.startMonitoring()
 scope.launch {
   monitor.observeAppLifecycle().collect { status ->
@@ -47,7 +47,7 @@ scope.launch {
 clipboard.clear()]]></string>
   <string name="demo_haptic_title">Haptic feedback</string>
   <string name="demo_haptic_description">Trigger selection, success, warning, and error feedback.</string>
-  <string name="demo_haptic_code"><![CDATA[val haptics = Toolkit.hapticFeedback()
+  <string name="demo_haptic_code"><![CDATA[val haptics = Toolkit.haptics()
 if (haptics.isSupported()) {
   haptics.perform(HapticFeedbackType.SELECTION)
 }
@@ -56,7 +56,7 @@ haptics.perform(HapticFeedbackType.WARNING)
 haptics.perform(HapticFeedbackType.ERROR)]]></string>
   <string name="demo_network_title">Network status monitor</string>
   <string name="demo_network_description">Observe network connectivity and connection type changes.</string>
-  <string name="demo_network_code"><![CDATA[val monitor = Toolkit.networkMonitor()
+  <string name="demo_network_code"><![CDATA[val monitor = Toolkit.network()
 monitor.startMonitoring()
 scope.launch {
   monitor.observeNetworkStatus().collect { status ->
@@ -72,7 +72,7 @@ val isWifi = status.type == NetworkType.WIFI
 monitor.stopMonitoring()]]></string>
   <string name="demo_sensor_title">Sensor monitor</string>
   <string name="demo_sensor_description">Use SensorToolkit to observe accelerometer, gyroscope, device motion, and other sensors.</string>
-  <string name="demo_sensor_code"><![CDATA[val sensors = Toolkit.sensorToolkit()
+  <string name="demo_sensor_code"><![CDATA[val sensors = Toolkit.sensors()
 if (sensors.isAvailable(SensorType.ACCELEROMETER).isAvailable) {
   scope.launch {
     sensors.observe(
@@ -90,7 +90,7 @@ if (sensors.isAvailable(SensorType.ACCELEROMETER).isAvailable) {
 val snapshot = sensors.getSnapshot(SensorType.GYROSCOPE)]]></string>
   <string name="demo_app_navigator_title">App navigation</string>
   <string name="demo_app_navigator_description">Open system settings, app details, notification settings, email, dialer, SMS, app store details, and links.</string>
-  <string name="demo_app_navigator_code"><![CDATA[val navigator = Toolkit.appNavigator()
+  <string name="demo_app_navigator_code"><![CDATA[val navigator = Toolkit.navigator()
 val openedSystem = navigator.navigateToSystemSettings()
 val openedApp = navigator.navigateToAppDetails()
 val openedNotifications = navigator.navigateToNotificationSettings()
@@ -108,7 +108,7 @@ val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
 val openedUrl = navigator.navigateToUrl("https://example.com")]]></string>
   <string name="demo_file_title">File picking and saving</string>
   <string name="demo_file_description">Pick a file, pick a directory, pick multiple files, and save a file.</string>
-  <string name="demo_file_code"><![CDATA[val files = Toolkit.fileToolkit()
+  <string name="demo_file_code"><![CDATA[val files = Toolkit.files()
 val picked = files.pickFile(
   FilePickerOptions(
     title = "Pick file",
@@ -132,7 +132,7 @@ val saved = files.saveFile(
 )]]></string>
   <string name="demo_share_title">System share sheet</string>
   <string name="demo_share_description">Open the system share sheet to share text, links, and images.</string>
-  <string name="demo_share_code"><![CDATA[Toolkit.shareToolkit().share(
+  <string name="demo_share_code"><![CDATA[Toolkit.share().share(
   contents = listOf(
     ShareContent.Text("hello"),
     ShareContent.Url("https://example.com"),
@@ -163,18 +163,19 @@ println(device.timeZone.offsetMinutes)
 println(device.locale.current.tag)
 println(device.locale.preferred)]]></string>
   <string name="demo_platform_title">Platform detection</string>
-  <string name="demo_platform_description">Detect the Platform type from common code.</string>
-  <string name="demo_platform_code"><![CDATA[when (Toolkit.platformType()) {
-  PlatformType.ANDROID -> {
+  <string name="demo_platform_description">Detect the current platform from common code.</string>
+  <string name="demo_platform_code"><![CDATA[val platform = Toolkit.currentPlatform()
 
-  }
-  PlatformType.IOS -> {
+if (platform.isAndroid()) {
 
-  }
+}
+
+if (platform.isIos()) {
+
 }]]></string>
   <string name="demo_keyboard_title">Keyboard status monitor</string>
   <string name="demo_keyboard_description">Observe soft keyboard visibility and height changes.</string>
-  <string name="demo_keyboard_code"><![CDATA[val keyboardMonitor = Toolkit.keyboardMonitor()
+  <string name="demo_keyboard_code"><![CDATA[val keyboardMonitor = Toolkit.keyboard()
 keyboardMonitor.startMonitoring()
 scope.launch {
   keyboardMonitor.observeKeyboardStatus().collect { status ->
@@ -342,6 +343,6 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="device_current_language">Current language</string>
   <string name="device_preferred_languages">Preferred languages</string>
 
-  <string name="action_read_platform_type">Read platform type</string>
+  <string name="action_read_platform_type">Read platform</string>
   <string name="platform_current_format">Current platform: %1$s</string>
 </resources>

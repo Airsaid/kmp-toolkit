@@ -30,7 +30,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ToolkitKeyboardScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.KeyboardRoute } }
-  val monitor = remember { Toolkit.keyboardMonitor() }
+  val monitor = remember { Toolkit.keyboard() }
   var latestStatus by remember { mutableStateOf<KeyboardStatus?>(null) }
   var isObserving by remember { mutableStateOf(false) }
   var inputText by remember { mutableStateOf("") }
