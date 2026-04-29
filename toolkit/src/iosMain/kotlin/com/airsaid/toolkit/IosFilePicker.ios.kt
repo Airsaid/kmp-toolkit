@@ -3,6 +3,7 @@ package com.airsaid.toolkit
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSURL
 import platform.Foundation.NSTemporaryDirectory
+import platform.UniformTypeIdentifiers.UTType
 import platform.UIKit.UIDocumentPickerDelegateProtocol
 import platform.UIKit.UIDocumentPickerMode
 import platform.UIKit.UIDocumentPickerViewController
@@ -152,8 +153,19 @@ private fun PlatformFileType.resolveTypes(): List<String> {
     PlatformFileType.Image -> listOf("public.image")
     PlatformFileType.Video -> listOf("public.movie")
     PlatformFileType.ImageAndVideo -> listOf("public.image", "public.movie")
-    is PlatformFileType.File -> listOf("public.data")
+    is PlatformFileType.File -> {
+      val resolved = extensions.mapNotNull { it.toUniformTypeIdentifier() }.distinct()
+      if (resolved.isNotEmpty()) resolved else listOf(PUBLIC_DATA_TYPE)
+    }
   }
+}
+
+private const val PUBLIC_DATA_TYPE = "public.data"
+
+private fun String.toUniformTypeIdentifier(): String? {
+  val normalized = removePrefix(".").trim().lowercase()
+  if (normalized.isEmpty()) return null
+  return UTType.typeWithFilenameExtension(normalized)?.identifier
 }
 
 private fun FilePickerMode.limit(urls: List<NSURL>): List<NSURL> {
