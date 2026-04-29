@@ -77,6 +77,7 @@ clipboard.setText("hello")
 val haptics = Toolkit.hapticFeedback()
 haptics.perform(HapticFeedbackType.SUCCESS)
 ```
+详细使用文档：[toolkit/README.zh.md](toolkit/README.zh.md)
 
 ## Android 权限
 

@@ -1,14 +1,14 @@
 # toolkit
 
-[中文说明](README.zh.md)
+[English](README.md)
 
-`toolkit` is the Kotlin Multiplatform library module for `kmp-toolkit`. It provides a shared API for app and device capabilities that usually require platform-specific code on Android and iOS.
+`toolkit` 是 `kmp-toolkit` 的 Kotlin Multiplatform 库模块，为 Android 与 iOS 上常见但通常需要平台代码的 App 与设备能力提供统一的共享 API。
 
-Use this guide when you want concrete examples for each tool. For a shorter project overview, see the repository [README](../README.md).
+如果你需要查看每个工具的具体调用示例，请使用本文档。更简短的项目概览见仓库根目录 [README](../README.zh.md)。
 
-## Installation
+## 安装
 
-Add the dependency to the module that needs toolkit APIs, usually `commonMain`:
+在需要使用 toolkit API 的模块中添加依赖，通常是 `commonMain`：
 
 ```kotlin
 kotlin {
@@ -20,7 +20,7 @@ kotlin {
 }
 ```
 
-Make sure Maven Central is available:
+确保已添加 Maven Central：
 
 ```kotlin
 repositories {
@@ -28,9 +28,9 @@ repositories {
 }
 ```
 
-## Initialization
+## 初始化
 
-Android apps must initialize the toolkit before using platform-backed APIs such as app information, device information, clipboard, network monitoring, keyboard monitoring, sharing, and file picking. iOS does not need an initialization call.
+Android 端在使用 App 信息、设备信息、剪贴板、网络监听、键盘监听、系统分享、文件选择等平台能力前，必须先初始化 toolkit。iOS 端无需初始化。
 
 ```kotlin
 class DemoApp : Application() {
@@ -43,9 +43,9 @@ class DemoApp : Application() {
 }
 ```
 
-## App Lifecycle
+## 应用生命周期
 
-Use `Toolkit.appLifecycleMonitor()` to observe foreground/background state and start type from shared code.
+使用 `Toolkit.appLifecycleMonitor()` 在共享代码中监听前后台状态与启动类型。
 
 ```kotlin
 val monitor = Toolkit.appLifecycleMonitor()
@@ -54,24 +54,24 @@ monitor.startMonitoring()
 scope.launch {
   monitor.observeAppLifecycle().collect { status ->
     if (status.isInForeground) {
-      // Refresh foreground-only work.
+      // 执行仅前台需要刷新的任务。
     }
   }
 }
 
 val status = monitor.getCurrentStatus()
 if (status.isFirstLaunch && status.lastStartType == AppStartType.COLD) {
-  // Run first-launch setup.
+  // 执行首次启动初始化。
 }
 
 monitor.stopMonitoring()
 ```
 
-Call `startMonitoring()` before collecting if you need active platform callbacks. Stop monitoring when the owner is no longer interested in lifecycle updates.
+如果需要接收平台回调，请先调用 `startMonitoring()` 再订阅。调用方不再需要生命周期更新时应停止监听。
 
-## App Info
+## 应用信息
 
-Use `Toolkit.appInfo()` to read runtime-stable app metadata.
+使用 `Toolkit.appInfo()` 读取运行期间稳定的应用元数据。
 
 ```kotlin
 val info = Toolkit.appInfo()
@@ -83,11 +83,11 @@ println(info.buildType)
 println(info.buildTime)
 ```
 
-On Android, `packageName` is the application id. On iOS, it is the bundle identifier.
+Android 上 `packageName` 是 application id；iOS 上是 bundle identifier。
 
-## Device Info
+## 设备信息
 
-Use `Toolkit.deviceInfo()` to read device, screen, time zone, and locale information.
+使用 `Toolkit.deviceInfo()` 读取设备、屏幕、时区与语言偏好信息。
 
 ```kotlin
 val device = Toolkit.deviceInfo()
@@ -110,11 +110,11 @@ println(device.locale.current.tag)
 println(device.locale.preferred)
 ```
 
-Screen and manufacturer values are platform-derived and should be treated as runtime information, not as a stable device identity.
+屏幕与厂商信息来自平台运行时，应视为运行环境信息，不应当作稳定设备身份。
 
-## Clipboard
+## 剪贴板
 
-Use `Toolkit.clipboard()` to read, write, clear, and observe clipboard contents. Text, rich text, URI, and image entries are represented by `ClipboardContent`.
+使用 `Toolkit.clipboard()` 读取、写入、清空并监听剪贴板内容。文本、富文本、URI 与图片内容由 `ClipboardContent` 表示。
 
 ```kotlin
 val clipboard = Toolkit.clipboard()
@@ -145,11 +145,11 @@ scope.launch {
 clipboard.clear()
 ```
 
-Android clipboard and file-backed sharing use a `FileProvider` authority based on the consuming app id: `${applicationId}.toolkit-clipboard`.
+Android 剪贴板与文件类分享会使用基于接入方应用 id 的 `FileProvider` authority：`${applicationId}.toolkit-clipboard`。
 
-## Network
+## 网络
 
-Use `Toolkit.networkMonitor()` to observe network connectivity and network type changes.
+使用 `Toolkit.networkMonitor()` 监听网络连接状态与网络类型变化。
 
 ```kotlin
 val monitor = Toolkit.networkMonitor()
@@ -158,7 +158,7 @@ monitor.startMonitoring()
 scope.launch {
   monitor.observeNetworkStatus().collect { status ->
     if (!status.isConnected) {
-      // Show offline UI.
+      // 展示离线状态 UI。
     }
   }
 }
@@ -172,11 +172,11 @@ val isWifi = status.type == NetworkType.WIFI
 monitor.stopMonitoring()
 ```
 
-Android declares `ACCESS_NETWORK_STATE` and `ACCESS_WIFI_STATE` for this feature.
+Android 会为该能力声明 `ACCESS_NETWORK_STATE` 与 `ACCESS_WIFI_STATE`。
 
-## Keyboard
+## 键盘
 
-Use `Toolkit.keyboardMonitor()` to observe soft keyboard visibility and height changes.
+使用 `Toolkit.keyboardMonitor()` 监听软键盘可见性与高度变化。
 
 ```kotlin
 val keyboardMonitor = Toolkit.keyboardMonitor()
@@ -197,11 +197,11 @@ println(status.heightPx)
 keyboardMonitor.stopMonitoring()
 ```
 
-Keyboard height is reported in platform pixels and may be `0` when the keyboard is hidden.
+键盘高度使用平台像素表示，键盘隐藏时可能为 `0`。
 
-## Haptics
+## 触感反馈
 
-Use `Toolkit.hapticFeedback()` to trigger common haptic feedback patterns.
+使用 `Toolkit.hapticFeedback()` 触发常见触感反馈。
 
 ```kotlin
 val haptics = Toolkit.hapticFeedback()
@@ -215,11 +215,11 @@ haptics.perform(HapticFeedbackType.WARNING)
 haptics.perform(HapticFeedbackType.ERROR)
 ```
 
-`perform(...)` returns `true` when the request was handled. Android declares `VIBRATE` for haptic feedback.
+`perform(...)` 在请求被处理时返回 `true`。Android 会为触感反馈声明 `VIBRATE`。
 
-## Sensors
+## 传感器
 
-Use `Toolkit.sensorToolkit()` to check sensor availability, observe sensor events, and request snapshots.
+使用 `Toolkit.sensorToolkit()` 检查传感器可用性、监听传感器事件并获取快照。
 
 ```kotlin
 val sensors = Toolkit.sensorToolkit()
@@ -246,11 +246,11 @@ val gyroValues = snapshot?.values
 sensors.stop(SensorType.ACCELEROMETER)
 ```
 
-The shared model includes many sensor types. Platform availability varies; check `isAvailable(...)` before observing. iOS focuses on accelerometer, gyroscope, magnetometer, device motion, and proximity support.
+共享模型包含多种传感器类型。平台可用性不同，监听前请先调用 `isAvailable(...)`。iOS 侧优先覆盖加速度计、陀螺仪、磁力计、设备姿态与距离传感器。
 
-## App Navigation
+## 应用级跳转
 
-Use `Toolkit.appNavigator()` to open common system destinations from shared code.
+使用 `Toolkit.appNavigator()` 在共享代码中打开常见系统目标页。
 
 ```kotlin
 val navigator = Toolkit.appNavigator()
@@ -272,11 +272,11 @@ val openedSms = navigator.navigateToSms(
 val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
 ```
 
-`navigateToAppStoreDetails(appId)` expects an Android package name on Android and an App Store app id on iOS. Navigation methods return `false` when the platform cannot handle the request.
+`navigateToAppStoreDetails(appId)` 在 Android 侧传包名，在 iOS 侧传 App Store 应用 ID。当平台无法处理请求时，跳转方法会返回 `false`。
 
-## Share
+## 系统分享
 
-Use `Toolkit.shareToolkit()` to present the system share sheet for text, URLs, images, and files.
+使用 `Toolkit.shareToolkit()` 调起系统分享面板，支持文本、链接、图片与文件。
 
 ```kotlin
 val shareToolkit = Toolkit.shareToolkit()
@@ -305,11 +305,11 @@ shareToolkit.share(
 )
 ```
 
-`ShareOptions.title` is used as the Android chooser title. `excludedActivities` maps to iOS share sheet exclusions.
+`ShareOptions.title` 会作为 Android chooser 标题使用。`excludedActivities` 会映射到 iOS 分享面板排除项。
 
-## File Picking and Saving
+## 文件选择与保存
 
-Use `Toolkit.fileToolkit()` to open platform file pickers, directory pickers, and save destinations. Android uses the Storage Access Framework, and iOS uses `UIDocumentPicker`.
+使用 `Toolkit.fileToolkit()` 打开系统文件选择器、目录选择器与保存目标。Android 使用 Storage Access Framework，iOS 使用 `UIDocumentPicker`。
 
 ```kotlin
 val files = Toolkit.fileToolkit()
@@ -341,7 +341,7 @@ val saved = files.saveFile(
 )
 ```
 
-`PlatformFile` exposes common metadata and scoped access helpers:
+`PlatformFile` 暴露通用元数据与作用域访问辅助方法：
 
 ```kotlin
 val file = files.pickFile()
@@ -355,39 +355,39 @@ if (file != null) {
 }
 ```
 
-Use `withScopedAccess { ... }` for iOS security-scoped file access when you need to work with the selected file beyond simple metadata reads.
+当 iOS 端需要在简单元数据读取之外继续访问所选文件时，使用 `withScopedAccess { ... }` 处理安全作用域访问。
 
-## Platform Type
+## 平台判断
 
-Use `Toolkit.platformType()` for small platform branches that must stay in common code.
+使用 `Toolkit.platformType()` 处理必须保留在 common 代码中的小型平台分支。
 
 ```kotlin
 when (Toolkit.platformType()) {
   PlatformType.ANDROID -> {
-    // Android-specific shared-code branch.
+    // Android 侧共享代码分支。
   }
   PlatformType.IOS -> {
-    // iOS-specific shared-code branch.
+    // iOS 侧共享代码分支。
   }
 }
 ```
 
-Prefer platform-specific source sets for larger behavior differences.
+如果平台差异较大，优先使用平台 source set。
 
-## Android Permissions
+## Android 权限
 
-The Android artifact declares the permissions required by toolkit features:
+Android 产物声明了 toolkit 功能所需权限：
 
 - `ACCESS_NETWORK_STATE`
 - `ACCESS_WIFI_STATE`
 - `VIBRATE`
 
-Clipboard and share helpers use a `FileProvider` authority based on the consuming app id:
-`${applicationId}.toolkit-clipboard`.
+剪贴板与分享能力使用基于接入方应用 id 的 `FileProvider` authority：
+`${applicationId}.toolkit-clipboard`。
 
-## Related Documentation
+## 相关文档
 
-- Project overview: [../README.md](../README.md)
-- Chinese usage guide: [README.zh.md](README.zh.md)
-- Changelog: [../CHANGELOG.md](../CHANGELOG.md)
-- Release process: [../docs/releasing.md](../docs/releasing.md)
+- 项目概览：[../README.zh.md](../README.zh.md)
+- 英文使用文档：[README.md](README.md)
+- 变更记录：[../CHANGELOG.md](../CHANGELOG.md)
+- 发布流程：[../docs/releasing.md](../docs/releasing.md)

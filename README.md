@@ -77,6 +77,7 @@ clipboard.setText("hello")
 val haptics = Toolkit.hapticFeedback()
 haptics.perform(HapticFeedbackType.SUCCESS)
 ```
+Detailed usage guide: [toolkit/README.md](toolkit/README.md)
 
 ## Android Permissions
 
