@@ -10,7 +10,9 @@ import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 
 internal class AndroidFilePicker(
@@ -85,12 +87,12 @@ internal class AndroidFilePicker(
   private suspend fun <I, O> launch(
     contract: ActivityResultContract<I, O>,
     input: I,
-  ): O? {
+  ): O? = withContext(Dispatchers.Main.immediate) {
     val activity = activityProvider()?.let { it as? ComponentActivity }
       ?: throw IllegalStateException(
         "FileToolkit requires a ComponentActivity to launch system pickers."
       )
-    return suspendCancellableCoroutine { continuation ->
+    suspendCancellableCoroutine { continuation ->
       val key = "toolkit-file-picker-${System.nanoTime()}"
       var launcher: ActivityResultLauncher<I>? = null
       launcher = activity.activityResultRegistry.register(key, contract) { result ->
