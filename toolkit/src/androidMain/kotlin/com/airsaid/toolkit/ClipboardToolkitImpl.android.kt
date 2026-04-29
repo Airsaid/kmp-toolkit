@@ -255,8 +255,8 @@ private object ClipboardImageStore {
 
   fun writeImage(context: Context, bytes: ByteArray, mimeType: String?): Uri? {
     val extension = mimeType?.substringAfter('/')?.takeIf { it.isNotBlank() } ?: "png"
-    val file = createTargetFile(context, extension)
     return try {
+      val file = createTargetFile(context, extension)
       file.outputStream().use { it.write(bytes) }
       FileProvider.getUriForFile(
         context,
@@ -273,7 +273,6 @@ private object ClipboardImageStore {
     if (!dir.exists()) {
       dir.mkdirs()
     }
-    val fileName = "clipboard_${System.currentTimeMillis()}.$extension"
-    return File(dir, fileName)
+    return File.createTempFile("clipboard_", ".$extension", dir)
   }
 }

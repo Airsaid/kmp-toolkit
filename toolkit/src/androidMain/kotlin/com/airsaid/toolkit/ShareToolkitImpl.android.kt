@@ -154,8 +154,8 @@ private object ShareFileStore {
   ): Uri? {
     if (bytes.isEmpty()) return null
     val extension = mimeType.substringAfter('/').takeIf { it.isNotBlank() } ?: "bin"
-    val file = createTargetFile(context, extension)
     return try {
+      val file = createTargetFile(context, extension)
       file.outputStream().use { it.write(bytes) }
       buildFileUri(context, file)
     } catch (_: IOException) {
@@ -186,8 +186,8 @@ private object ShareFileStore {
   ): Uri? {
     val extension = mimeType?.substringAfter('/')?.takeIf { it.isNotBlank() }
       ?: file.extension.ifBlank { "bin" }
-    val target = createTargetFile(context, extension)
     return try {
+      val target = createTargetFile(context, extension)
       file.inputStream().use { input ->
         target.outputStream().use { output ->
           input.copyTo(output)
@@ -204,8 +204,7 @@ private object ShareFileStore {
     if (!dir.exists()) {
       dir.mkdirs()
     }
-    val fileName = "share_${System.currentTimeMillis()}.$extension"
-    return File(dir, fileName)
+    return File.createTempFile("share_", ".$extension", dir)
   }
 
   private fun buildFileUri(context: Context, file: File): Uri {
