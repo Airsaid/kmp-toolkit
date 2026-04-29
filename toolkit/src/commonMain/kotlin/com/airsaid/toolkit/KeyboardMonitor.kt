@@ -56,3 +56,15 @@ internal fun resolveKeyboardVisibility(
 ): Boolean {
   return heightPx > thresholdPx
 }
+
+internal fun resolveKeyboardStatus(
+  isVisible: Boolean,
+  heightPx: Int,
+  thresholdPx: Int,
+): KeyboardStatus {
+  val resolvedVisible = isVisible && resolveKeyboardVisibility(heightPx, thresholdPx)
+  return KeyboardStatus(
+    isVisible = resolvedVisible,
+    heightPx = if (resolvedVisible) heightPx else 0,
+  )
+}

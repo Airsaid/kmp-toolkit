@@ -20,8 +20,9 @@ internal class KeyboardMonitorRouter : KeyboardMonitor {
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
   private val lock = Any()
 
-  private var currentAnchor: View? = null
   private var isRegistered = false
+  private var currentAnchor: View? = null
+  private var currentMonitor: KeyboardMonitor? = null
   private var monitorJob: Job? = null
 
   private var isMonitoring = false
@@ -29,8 +30,8 @@ internal class KeyboardMonitorRouter : KeyboardMonitor {
   private var isExplicitlyStopped = false
   private var observerCount = 0
 
-  private val anchorListener: (View?) -> Unit = { view ->
-    onAnchorChanged(view)
+  private val anchorListener: (KeyboardAnchorEvent) -> Unit = { event ->
+    onAnchorEvent(event)
   }
 
   override fun observeKeyboardStatus(): Flow<KeyboardStatus> {
@@ -95,23 +96,34 @@ internal class KeyboardMonitorRouter : KeyboardMonitor {
     return !isExplicitlyStopped && (isManuallyStarted || observerCount > 0)
   }
 
-  private fun onAnchorChanged(view: View?) {
+  private fun onAnchorEvent(event: KeyboardAnchorEvent) {
+    when (event) {
+      is KeyboardAnchorEvent.Available -> onAnchorAvailable(event.view)
+      is KeyboardAnchorEvent.Unavailable -> onAnchorUnavailable(event.view)
+    }
+  }
+
+  private fun onAnchorAvailable(view: View) {
     synchronized(lock) {
       if (currentAnchor === view) return
       currentAnchor = view
-      if (view == null) {
-        if (isMonitoring) {
-          stopMonitoringInternalLocked()
-        }
-        statusState.value = KeyboardStatus(isVisible = false, heightPx = 0)
-        return
-      }
       if (shouldMonitorLocked()) {
         if (isMonitoring) {
           stopMonitoringInternalLocked()
         }
         startMonitoringInternalLocked()
       }
+    }
+  }
+
+  private fun onAnchorUnavailable(view: View) {
+    synchronized(lock) {
+      if (currentAnchor !== view) return
+      currentAnchor = null
+      if (isMonitoring) {
+        stopMonitoringInternalLocked()
+      }
+      statusState.value = KeyboardStatus(isVisible = false, heightPx = 0)
     }
   }
 
@@ -123,6 +135,8 @@ internal class KeyboardMonitorRouter : KeyboardMonitor {
       return
     }
     val monitor = KeyboardMonitorImpl(view)
+    currentMonitor = monitor
+    monitor.startMonitoring()
     monitorJob = scope.launch {
       monitor.observeKeyboardStatus().collect { status ->
         statusState.value = status
@@ -132,6 +146,8 @@ internal class KeyboardMonitorRouter : KeyboardMonitor {
   }
 
   private fun stopMonitoringInternalLocked() {
+    currentMonitor?.stopMonitoring()
+    currentMonitor = null
     monitorJob?.cancel()
     monitorJob = null
     isMonitoring = false
@@ -139,7 +155,8 @@ internal class KeyboardMonitorRouter : KeyboardMonitor {
 
   private fun registerAnchorListenerIfNeeded() {
     if (isRegistered) return
-    currentAnchor = KeyboardAnchorRegistry.register(anchorListener)
+    KeyboardAnchorRegistry.register(anchorListener)
+    currentAnchor = ActivityLifecycleRegistry.getCurrentActivity()?.window?.decorView
     isRegistered = true
     if (currentAnchor == null) {
       statusState.value = KeyboardStatus(isVisible = false, heightPx = 0)

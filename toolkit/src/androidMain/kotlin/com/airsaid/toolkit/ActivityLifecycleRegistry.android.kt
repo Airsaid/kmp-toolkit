@@ -87,6 +87,10 @@ internal object ActivityLifecycleRegistry {
     return synchronized(lock) { currentActivityRef?.get() }
   }
 
+  internal fun rememberCurrentActivity(activity: Activity) {
+    updateCurrentActivity(activity)
+  }
+
   private fun dispatch(block: (Application.ActivityLifecycleCallbacks) -> Unit) {
     val snapshot = synchronized(lock) { listeners.toList() }
     snapshot.forEach(block)

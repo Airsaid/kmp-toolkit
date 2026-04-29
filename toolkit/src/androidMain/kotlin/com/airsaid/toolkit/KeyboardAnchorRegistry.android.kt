@@ -5,32 +5,35 @@ import android.view.View
 internal object KeyboardAnchorRegistry {
 
   private val lock = Any()
-  private var anchorView: View? = null
-  private val listeners = LinkedHashSet<(View?) -> Unit>()
+  private val listeners = LinkedHashSet<(KeyboardAnchorEvent) -> Unit>()
 
-  fun updateAnchor(view: View?) {
-    val snapshot = synchronized(lock) {
-      if (anchorView === view) return
-      anchorView = view
-      listeners.toList()
-    }
-    snapshot.forEach { it(view) }
+  fun updateAnchor(view: View) {
+    dispatch(KeyboardAnchorEvent.Available(view))
   }
 
-  fun getAnchor(): View? {
-    return synchronized(lock) { anchorView }
+  fun clearAnchor(view: View) {
+    dispatch(KeyboardAnchorEvent.Unavailable(view))
   }
 
-  fun register(listener: (View?) -> Unit): View? {
-    return synchronized(lock) {
+  fun register(listener: (KeyboardAnchorEvent) -> Unit) {
+    synchronized(lock) {
       listeners.add(listener)
-      anchorView
     }
   }
 
-  fun unregister(listener: (View?) -> Unit) {
+  fun unregister(listener: (KeyboardAnchorEvent) -> Unit) {
     synchronized(lock) {
       listeners.remove(listener)
     }
   }
+
+  private fun dispatch(event: KeyboardAnchorEvent) {
+    val snapshot = synchronized(lock) { listeners.toList() }
+    snapshot.forEach { it(event) }
+  }
+}
+
+internal sealed interface KeyboardAnchorEvent {
+  data class Available(val view: View) : KeyboardAnchorEvent
+  data class Unavailable(val view: View) : KeyboardAnchorEvent
 }

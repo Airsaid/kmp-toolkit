@@ -1,8 +1,8 @@
 package com.airsaid.toolkit
 
-import android.graphics.Rect
 import android.view.View
-import android.view.ViewTreeObserver
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.conflate
@@ -21,7 +21,6 @@ internal class KeyboardMonitorImpl(
   private val statusState = MutableStateFlow(KeyboardStatus(isVisible = false, heightPx = 0))
   private val lock = Any()
 
-  private var listener: ViewTreeObserver.OnGlobalLayoutListener? = null
   private var isMonitoring = false
   private var isManuallyStarted = false
   private var isExplicitlyStopped = false
@@ -80,34 +79,27 @@ internal class KeyboardMonitorImpl(
   private fun startMonitoringInternal() {
     if (isMonitoring) return
 
-    val newListener = ViewTreeObserver.OnGlobalLayoutListener {
-      updateStatus()
+    ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
+      updateStatus(insets)
+      insets
     }
-    listener = newListener
-    view.viewTreeObserver.addOnGlobalLayoutListener(newListener)
-    updateStatus()
+    ViewCompat.getRootWindowInsets(view)?.let(::updateStatus)
+    ViewCompat.requestApplyInsets(view)
     isMonitoring = true
   }
 
   private fun stopMonitoringInternal() {
-    val currentListener = listener ?: return
-    val observer = view.viewTreeObserver
-    if (observer.isAlive) {
-      observer.removeOnGlobalLayoutListener(currentListener)
-    }
-    listener = null
+    ViewCompat.setOnApplyWindowInsetsListener(view, null)
     isMonitoring = false
+    statusState.value = KeyboardStatus(isVisible = false, heightPx = 0)
   }
 
-  private fun updateStatus() {
-    val rect = Rect()
-    view.getWindowVisibleDisplayFrame(rect)
-    val rootView = view.rootView
-    val keyboardHeight = (rootView.height - rect.bottom).coerceAtLeast(0)
-    val isVisible = resolveKeyboardVisibility(keyboardHeight, thresholdPx)
-    statusState.value = KeyboardStatus(
-      isVisible = isVisible,
-      heightPx = if (isVisible) keyboardHeight else 0,
+  private fun updateStatus(insets: WindowInsetsCompat) {
+    val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+    statusState.value = resolveKeyboardStatus(
+      isVisible = insets.isVisible(WindowInsetsCompat.Type.ime()),
+      heightPx = imeHeight,
+      thresholdPx = thresholdPx,
     )
   }
 

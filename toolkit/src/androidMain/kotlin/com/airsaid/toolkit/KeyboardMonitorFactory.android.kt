@@ -15,7 +15,7 @@ internal actual object KeyboardMonitorFactory {
 
   /**
    * Initializes the factory with an Android [Context].
-   * If the context is an [Activity], its decorView will be used as the anchor.
+   * If the context is an [Activity], its decorView will be used as the current anchor.
    */
   internal fun initialize(context: Context) {
     val app = context.applicationContext as? Application
@@ -25,13 +25,14 @@ internal actual object KeyboardMonitorFactory {
     ActivityLifecycleRegistry.initialize(app)
     registerCallbacksIfNeeded()
     if (context is Activity) {
+      ActivityLifecycleRegistry.rememberCurrentActivity(context)
       KeyboardAnchorRegistry.updateAnchor(context.window.decorView)
     }
     isInitialized = true
   }
 
   /**
-   * Creates a [KeyboardMonitor] instance using the previously initialized view.
+   * Creates a [KeyboardMonitor] instance using the current activity window.
    */
   actual fun create(): KeyboardMonitor {
     if (!isInitialized) {
@@ -60,15 +61,14 @@ private object KeyboardAnchorLifecycleCallbacks : Application.ActivityLifecycleC
   }
 
   override fun onActivityPaused(activity: Activity) {
-    val currentAnchor = KeyboardAnchorRegistry.getAnchor()
-    if (currentAnchor === activity.window.decorView) {
-      KeyboardAnchorRegistry.updateAnchor(null)
-    }
+    KeyboardAnchorRegistry.clearAnchor(activity.window.decorView)
   }
 
   override fun onActivityStopped(activity: Activity) = Unit
 
   override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
 
-  override fun onActivityDestroyed(activity: Activity) = Unit
+  override fun onActivityDestroyed(activity: Activity) {
+    KeyboardAnchorRegistry.clearAnchor(activity.window.decorView)
+  }
 }
