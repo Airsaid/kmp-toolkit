@@ -3,9 +3,9 @@ package com.airsaid.toolkit
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.core.net.toUri
 
 /**
  * Android implementation of [AppNavigator].
@@ -107,12 +107,12 @@ internal fun buildSystemSettingsIntent(): Intent {
 
 internal fun buildAppDetailsIntent(packageName: String): Intent {
   return Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-    .setData(Uri.parse(buildAppDetailsUriString(packageName)))
+    .setData(buildAppDetailsUriString(packageName).toUri())
     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 }
 
 internal fun buildUrlIntent(url: String): Intent {
-  return Intent(Intent.ACTION_VIEW, Uri.parse(url))
+  return Intent(Intent.ACTION_VIEW, url.toUri())
     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 }
 
@@ -128,7 +128,7 @@ internal fun buildNotificationSettingsIntent(context: Context): Intent? {
 
 internal fun buildEmailIntent(to: String, subject: String?, body: String?): Intent {
   return Intent(Intent.ACTION_SENDTO).apply {
-    data = Uri.parse("mailto:$to")
+    data = "mailto:$to".toUri()
     if (!subject.isNullOrEmpty()) {
       putExtra(Intent.EXTRA_SUBJECT, subject)
     }
@@ -139,13 +139,13 @@ internal fun buildEmailIntent(to: String, subject: String?, body: String?): Inte
 }
 
 internal fun buildDialIntent(phone: String): Intent {
-  return Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
+  return Intent(Intent.ACTION_DIAL, "tel:$phone".toUri())
     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 }
 
 internal fun buildSmsIntent(phone: String, body: String?): Intent {
   return Intent(Intent.ACTION_SENDTO).apply {
-    data = Uri.parse("smsto:$phone")
+    data = "smsto:$phone".toUri()
     if (!body.isNullOrEmpty()) {
       putExtra("sms_body", body)
     }
@@ -153,12 +153,12 @@ internal fun buildSmsIntent(phone: String, body: String?): Intent {
 }
 
 internal fun buildPlayStoreDetailsIntent(appId: String): Intent {
-  return Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$appId"))
+  return Intent(Intent.ACTION_VIEW, "market://details?id=$appId".toUri())
     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 }
 
 internal fun buildPlayStoreWebIntent(appId: String): Intent {
-  return Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$appId"))
+  return Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=$appId".toUri())
     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 }
 

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import java.io.File
 import java.io.IOException
 
@@ -103,7 +104,7 @@ internal class ShareToolkitImpl(
   private fun resolveUri(content: ShareContent.File): Uri? {
     val rawUri = content.uri.trim()
     if (rawUri.isEmpty()) return null
-    val parsed = Uri.parse(rawUri)
+    val parsed = rawUri.toUri()
     val scheme = parsed.scheme
     if (scheme == "content") {
       return parsed

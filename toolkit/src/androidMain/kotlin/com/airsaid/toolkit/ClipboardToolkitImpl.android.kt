@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Build
 import android.net.Uri
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -195,7 +196,7 @@ internal class ClipboardToolkitImpl(
         content.plainText ?: content.text,
         content.text,
       )
-      is ClipboardContent.Uri -> ClipData.Item(Uri.parse(content.uri))
+      is ClipboardContent.Uri -> ClipData.Item(content.uri.toUri())
       is ClipboardContent.Image -> ClipData.Item(
         requireNotNull(createImageUri(content)) {
           "Clipboard image cannot be written without a valid URI."
@@ -219,7 +220,7 @@ internal class ClipboardToolkitImpl(
   }
 
   private fun buildUriClipData(content: ClipboardContent.Uri): ClipData {
-    val uri = Uri.parse(content.uri)
+    val uri = content.uri.toUri()
     return ClipData.newUri(context.contentResolver, CLIP_LABEL, uri)
   }
 
