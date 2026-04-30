@@ -85,7 +85,6 @@ The Android artifact declares the permissions needed by toolkit features:
 
 - `ACCESS_NETWORK_STATE`
 - `ACCESS_WIFI_STATE`
-- `VIBRATE`
 
 Clipboard and share helpers use a `FileProvider` authority based on the consuming app id:
 `${applicationId}.toolkit-clipboard`.

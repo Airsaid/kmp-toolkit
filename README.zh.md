@@ -85,7 +85,6 @@ Android 产物声明了 toolkit 功能所需权限：
 
 - `ACCESS_NETWORK_STATE`
 - `ACCESS_WIFI_STATE`
-- `VIBRATE`
 
 剪贴板和分享能力使用基于接入方应用 id 的 `FileProvider` authority：
 `${applicationId}.toolkit-clipboard`。

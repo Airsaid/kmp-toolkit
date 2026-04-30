@@ -212,16 +212,23 @@ keyboardMonitor.stopMonitoring()
 ```kotlin
 val haptics = Toolkit.haptics()
 
-if (haptics.isSupported()) {
-  haptics.perform(HapticFeedbackType.SELECTION)
-}
-
+haptics.perform(HapticFeedbackType.SELECTION)
 haptics.perform(HapticFeedbackType.SUCCESS)
 haptics.perform(HapticFeedbackType.WARNING)
 haptics.perform(HapticFeedbackType.ERROR)
 ```
 
-`perform(...)` 在请求被处理时返回 `true`。Android 会为触感反馈声明 `VIBRATE`。
+`perform(...)` 在平台接受请求时返回 `true`，但不保证用户一定感受到触感反馈。
+
+对于 Android UI 交互，优先使用基于 View 的扩展。它使用
+`View.performHapticFeedback(...)`，会遵循系统和 View 的触感反馈设置，并且不需要
+`VIBRATE`。
+
+```kotlin
+view.performHapticFeedback(HapticFeedbackType.SELECTION)
+```
+
+对于 Compose UI，优先使用 Compose 的 `LocalHapticFeedback`。
 
 ## 传感器
 
@@ -387,7 +394,6 @@ Android 产物声明了 toolkit 功能所需权限：
 
 - `ACCESS_NETWORK_STATE`
 - `ACCESS_WIFI_STATE`
-- `VIBRATE`
 
 剪贴板与分享能力使用基于接入方应用 id 的 `FileProvider` authority：
 `${applicationId}.toolkit-clipboard`。

@@ -16,14 +16,10 @@ enum class HapticFeedbackType {
 interface HapticFeedback {
 
   /**
-   * Returns true when the current device supports haptics.
-   */
-  fun isSupported(): Boolean
-
-  /**
    * Performs haptic feedback for the given [type].
    *
-   * @return True if the request was handled.
+   * @return True if the request was accepted by the platform. This does not guarantee
+   * that the user felt haptic feedback.
    */
   fun perform(type: HapticFeedbackType): Boolean
 }

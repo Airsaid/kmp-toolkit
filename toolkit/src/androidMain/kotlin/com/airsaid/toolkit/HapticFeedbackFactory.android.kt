@@ -20,11 +20,11 @@ internal actual object HapticFeedbackFactory {
    * Creates a [HapticFeedback] instance using the previously initialized context.
    */
   actual fun create(): HapticFeedback {
-    val context = applicationContext
+    applicationContext
       ?: throw IllegalStateException(
         "HapticFeedbackFactory must be initialized with Context on Android. " +
             "Call Toolkit.initialize(context) first."
       )
-    return HapticFeedbackImpl(context)
+    return HapticFeedbackImpl()
   }
 }

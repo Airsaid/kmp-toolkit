@@ -1,41 +1,64 @@
 package com.airsaid.toolkit
 
+import platform.CoreHaptics.CHHapticEngine
+import platform.Foundation.NSThread
 import platform.UIKit.UISelectionFeedbackGenerator
 import platform.UIKit.UINotificationFeedbackGenerator
 import platform.UIKit.UINotificationFeedbackType
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
 
 /**
  * iOS implementation of [HapticFeedback].
  */
 internal class HapticFeedbackImpl : HapticFeedback {
 
-  override fun isSupported(): Boolean {
+  private var selectionGenerator: UISelectionFeedbackGenerator? = null
+  private var notificationGenerator: UINotificationFeedbackGenerator? = null
+
+  override fun perform(type: HapticFeedbackType): Boolean {
+    if (!CHHapticEngine.capabilitiesForHardware().supportsHaptics) return false
+
+    if (NSThread.isMainThread) {
+      performOnMainThread(type)
+    } else {
+      dispatch_async(dispatch_get_main_queue()) {
+        performOnMainThread(type)
+      }
+    }
     return true
   }
 
-  override fun perform(type: HapticFeedbackType): Boolean {
+  private fun performOnMainThread(type: HapticFeedbackType) {
     when (type) {
       HapticFeedbackType.SELECTION -> {
-        val generator = UISelectionFeedbackGenerator()
+        val generator = selectionGenerator ?: UISelectionFeedbackGenerator().also {
+          selectionGenerator = it
+        }
         generator.prepare()
         generator.selectionChanged()
       }
       HapticFeedbackType.SUCCESS -> {
-        val generator = UINotificationFeedbackGenerator()
+        val generator = notificationGenerator()
         generator.prepare()
         generator.notificationOccurred(UINotificationFeedbackType.UINotificationFeedbackTypeSuccess)
       }
       HapticFeedbackType.WARNING -> {
-        val generator = UINotificationFeedbackGenerator()
+        val generator = notificationGenerator()
         generator.prepare()
         generator.notificationOccurred(UINotificationFeedbackType.UINotificationFeedbackTypeWarning)
       }
       HapticFeedbackType.ERROR -> {
-        val generator = UINotificationFeedbackGenerator()
+        val generator = notificationGenerator()
         generator.prepare()
         generator.notificationOccurred(UINotificationFeedbackType.UINotificationFeedbackTypeError)
       }
     }
-    return true
+  }
+
+  private fun notificationGenerator(): UINotificationFeedbackGenerator {
+    return notificationGenerator ?: UINotificationFeedbackGenerator().also {
+      notificationGenerator = it
+    }
   }
 }

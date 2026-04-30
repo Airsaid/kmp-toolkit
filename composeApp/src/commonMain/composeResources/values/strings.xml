@@ -52,14 +52,10 @@ scope.launch {
   }
 }]]></string>
   <string name="demo_haptic_title">Haptic feedback</string>
-  <string name="demo_haptic_description">Trigger selection, success, warning, and error feedback.</string>
-  <string name="demo_haptic_code"><![CDATA[val haptics = Toolkit.haptics()
-if (haptics.isSupported()) {
-  haptics.perform(HapticFeedbackType.SELECTION)
-}
-haptics.perform(HapticFeedbackType.SUCCESS)
-haptics.perform(HapticFeedbackType.WARNING)
-haptics.perform(HapticFeedbackType.ERROR)]]></string>
+  <string name="demo_haptic_description">Trigger Compose haptic feedback for supported UI interactions.</string>
+  <string name="demo_haptic_code"><![CDATA[val haptics = LocalHapticFeedback.current
+haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)]]></string>
   <string name="demo_network_title">Network status monitor</string>
   <string name="demo_network_description">Observe network connectivity and connection type changes.</string>
   <string name="demo_network_code"><![CDATA[val monitor = Toolkit.network()
@@ -230,10 +226,8 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="app_logo_not_found">App logo not found</string>
   <string name="image_info_format">Image size: %1$s bytes, type: %2$s</string>
 
-  <string name="haptic_selection">Selection</string>
-  <string name="haptic_success">Success</string>
-  <string name="haptic_warning">Warning</string>
-  <string name="haptic_error">Error</string>
+  <string name="haptic_long_press">Long press</string>
+  <string name="haptic_text_handle_move">Text handle move</string>
 
   <string name="network_wifi_connected">WiFi connected</string>
   <string name="network_cellular_connected">Cellular data</string>

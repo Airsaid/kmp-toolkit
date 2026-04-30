@@ -212,16 +212,24 @@ Use `Toolkit.haptics()` to trigger common haptic feedback patterns.
 ```kotlin
 val haptics = Toolkit.haptics()
 
-if (haptics.isSupported()) {
-  haptics.perform(HapticFeedbackType.SELECTION)
-}
-
+haptics.perform(HapticFeedbackType.SELECTION)
 haptics.perform(HapticFeedbackType.SUCCESS)
 haptics.perform(HapticFeedbackType.WARNING)
 haptics.perform(HapticFeedbackType.ERROR)
 ```
 
-`perform(...)` returns `true` when the request was handled. Android declares `VIBRATE` for haptic feedback.
+`perform(...)` returns `true` when the request was accepted by the platform. This does not guarantee
+that the user felt haptic feedback.
+
+For Android UI interactions, prefer the View-based extension because it uses
+`View.performHapticFeedback(...)`, honors system and view haptic settings, and does not require
+`VIBRATE`.
+
+```kotlin
+view.performHapticFeedback(HapticFeedbackType.SELECTION)
+```
+
+For Compose UI, prefer Compose's `LocalHapticFeedback`.
 
 ## Sensors
 
@@ -387,7 +395,6 @@ The Android artifact declares the permissions required by toolkit features:
 
 - `ACCESS_NETWORK_STATE`
 - `ACCESS_WIFI_STATE`
-- `VIBRATE`
 
 Clipboard and share helpers use a `FileProvider` authority based on the consuming app id:
 `${applicationId}.toolkit-clipboard`.
