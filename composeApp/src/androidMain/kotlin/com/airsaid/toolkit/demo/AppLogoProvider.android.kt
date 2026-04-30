@@ -7,6 +7,7 @@ import android.graphics.drawable.Drawable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.graphics.createBitmap
 import java.io.ByteArrayOutputStream
 
 @Composable
@@ -33,7 +34,7 @@ private fun Drawable.toPngBytes(): ByteArray? {
 private fun createBitmapFromDrawable(drawable: Drawable): Bitmap? {
   val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: return null
   val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: return null
-  val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+  val bitmap = createBitmap(width, height)
   val canvas = Canvas(bitmap)
   drawable.setBounds(0, 0, canvas.width, canvas.height)
   drawable.draw(canvas)
