@@ -90,7 +90,7 @@ Android 产物声明了 toolkit 功能所需权限：
 
 ## 平台与版本
 
-- Android: minSdk 24, compileSdk 35, JVM target 17
+- Android: minSdk 24, compileSdk 36, JVM target 17
 - iOS: iosArm64, iosX64, iosSimulatorArm64
 - Kotlin: 2.2.21
 

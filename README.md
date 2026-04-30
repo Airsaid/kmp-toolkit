@@ -90,7 +90,7 @@ Clipboard and share helpers use a `FileProvider` authority based on the consumin
 
 ## Platforms
 
-- Android: minSdk 24, compileSdk 35, JVM target 17
+- Android: minSdk 24, compileSdk 36, JVM target 17
 - iOS: iosArm64, iosX64, iosSimulatorArm64
 - Kotlin: 2.2.21
 
