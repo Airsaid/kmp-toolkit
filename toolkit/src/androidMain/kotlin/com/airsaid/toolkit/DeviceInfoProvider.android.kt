@@ -95,31 +95,20 @@ private fun buildPreferredLocales(
   configuration: Configuration,
   currentLocale: LocaleInfo,
 ): List<LocaleInfo> {
-  val localeInfos = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-    val localeList = configuration.locales
-    (0 until localeList.size()).map { index ->
-      val locale = localeList[index]
-      buildLocaleInfo(locale.language, locale.country)
-    }
-  } else {
-    @Suppress("DEPRECATION")
-    val locale = configuration.locale
-    listOf(buildLocaleInfo(locale.language, locale.country))
+  val localeList = configuration.locales
+  val localeInfos = (0 until localeList.size()).map { index ->
+    val locale = localeList[index]
+    buildLocaleInfo(locale.language, locale.country)
   }
   return if (localeInfos.isNotEmpty()) localeInfos else listOf(currentLocale)
 }
 
 private fun resolveCurrentLocale(configuration: Configuration): LocaleInfo {
-  val locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-    val localeList = configuration.locales
-    if (localeList.isEmpty) {
-      Locale.getDefault()
-    } else {
-      localeList[0]
-    }
+  val localeList = configuration.locales
+  val locale = if (localeList.isEmpty) {
+    Locale.getDefault()
   } else {
-    @Suppress("DEPRECATION")
-    configuration.locale
+    localeList[0]
   }
   return buildLocaleInfo(locale.language, locale.country)
 }
