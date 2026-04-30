@@ -207,7 +207,9 @@ Keyboard height is reported in platform pixels and may be `0` when the keyboard 
 
 ## Haptics
 
-Use `Toolkit.haptics()` to trigger common haptic feedback patterns.
+Use `Toolkit.haptics()` to trigger cross-platform semantic haptic feedback, especially from
+non-Compose code or shared logic that wants success, warning, error, or selection feedback without
+depending on a UI framework.
 
 ```kotlin
 val haptics = Toolkit.haptics()
@@ -229,7 +231,10 @@ For Android UI interactions, prefer the View-based extension because it uses
 view.performHapticFeedback(HapticFeedbackType.SELECTION)
 ```
 
-For Compose UI, prefer Compose's `LocalHapticFeedback`.
+For Compose UI interactions, prefer Compose's `LocalHapticFeedback`. It is scoped to the current
+composition and is the best fit for direct UI gestures such as long press, drag, and text handle
+movement. `Toolkit.haptics()` remains useful outside Compose UI or when you want toolkit-level
+cross-platform semantic feedback.
 
 ## Sensors
 

@@ -52,10 +52,12 @@ scope.launch {
   }
 }]]></string>
   <string name="demo_haptic_title">触感反馈</string>
-  <string name="demo_haptic_description">触发 Compose 对受支持 UI 交互的触感反馈。</string>
-  <string name="demo_haptic_code"><![CDATA[val haptics = LocalHapticFeedback.current
-haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)]]></string>
+  <string name="demo_haptic_description">使用 Toolkit.haptics() 触发跨平台语义触感反馈。</string>
+  <string name="demo_haptic_code"><![CDATA[val haptics = Toolkit.haptics()
+haptics.perform(HapticFeedbackType.SUCCESS)
+haptics.perform(HapticFeedbackType.WARNING)
+haptics.perform(HapticFeedbackType.ERROR)
+haptics.perform(HapticFeedbackType.SELECTION)]]></string>
   <string name="demo_network_title">网络状态监听</string>
   <string name="demo_network_description">监听网络连接状态与类型变化。</string>
   <string name="demo_network_code"><![CDATA[val monitor = Toolkit.network()
@@ -226,8 +228,10 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="app_logo_not_found">应用 Logo 未找到</string>
   <string name="image_info_format">图片大小: %1$s 字节, 类型: %2$s</string>
 
-  <string name="haptic_long_press">长按</string>
-  <string name="haptic_text_handle_move">文本手柄移动</string>
+  <string name="haptic_success">成功</string>
+  <string name="haptic_warning">警告</string>
+  <string name="haptic_error">错误</string>
+  <string name="haptic_selection">选择</string>
 
   <string name="network_wifi_connected">WiFi 已连接</string>
   <string name="network_cellular_connected">移动数据</string>

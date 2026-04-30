@@ -10,19 +10,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import com.airsaid.toolkit.HapticFeedbackType
+import com.airsaid.toolkit.Toolkit
 import com.airsaid.toolkit.demo.resources.Res
-import com.airsaid.toolkit.demo.resources.haptic_long_press
-import com.airsaid.toolkit.demo.resources.haptic_text_handle_move
+import com.airsaid.toolkit.demo.resources.haptic_error
+import com.airsaid.toolkit.demo.resources.haptic_selection
+import com.airsaid.toolkit.demo.resources.haptic_success
+import com.airsaid.toolkit.demo.resources.haptic_warning
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ToolkitHapticScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.HapticRoute } }
-  val haptics = LocalHapticFeedback.current
+  val haptics = remember { Toolkit.haptics() }
 
   ToolkitDemoPage(
     descriptionRes = item.descriptionRes,
@@ -35,14 +37,24 @@ fun ToolkitHapticScreen(modifier: Modifier = Modifier) {
       verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
       Button(onClick = {
-        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        haptics.perform(HapticFeedbackType.SUCCESS)
       }) {
-        Text(text = stringResource(Res.string.haptic_long_press))
+        Text(text = stringResource(Res.string.haptic_success))
       }
       OutlinedButton(onClick = {
-        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        haptics.perform(HapticFeedbackType.WARNING)
       }) {
-        Text(text = stringResource(Res.string.haptic_text_handle_move))
+        Text(text = stringResource(Res.string.haptic_warning))
+      }
+      OutlinedButton(onClick = {
+        haptics.perform(HapticFeedbackType.ERROR)
+      }) {
+        Text(text = stringResource(Res.string.haptic_error))
+      }
+      OutlinedButton(onClick = {
+        haptics.perform(HapticFeedbackType.SELECTION)
+      }) {
+        Text(text = stringResource(Res.string.haptic_selection))
       }
     }
   }

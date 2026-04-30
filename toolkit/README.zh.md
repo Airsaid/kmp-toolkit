@@ -207,7 +207,8 @@ keyboardMonitor.stopMonitoring()
 
 ## 触感反馈
 
-使用 `Toolkit.haptics()` 触发常见触感反馈。
+使用 `Toolkit.haptics()` 触发跨平台语义触感反馈，尤其适合非 Compose 代码，或希望在共享逻辑中
+表达成功、警告、错误、选择等语义反馈且不依赖具体 UI 框架的场景。
 
 ```kotlin
 val haptics = Toolkit.haptics()
@@ -228,7 +229,9 @@ haptics.perform(HapticFeedbackType.ERROR)
 view.performHapticFeedback(HapticFeedbackType.SELECTION)
 ```
 
-对于 Compose UI，优先使用 Compose 的 `LocalHapticFeedback`。
+对于 Compose UI 交互，优先使用 Compose 的 `LocalHapticFeedback`。它作用于当前 composition，
+更适合长按、拖拽、文本手柄移动等直接 UI 手势。`Toolkit.haptics()` 仍适合 Compose UI 之外，
+或需要 toolkit 层跨平台语义反馈的场景。
 
 ## 传感器
 
