@@ -1,10 +1,16 @@
 package com.airsaid.toolkit
 
+import android.app.Activity
+import android.app.Application
 import android.content.ClipData
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
-import android.os.Build
 import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.os.PersistableBundle
+import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
@@ -18,6 +24,7 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 
@@ -38,6 +45,7 @@ internal class ClipboardToolkitImpl(
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
 
   private var listener: ClipboardManager.OnPrimaryClipChangedListener? = null
+  private var lifecycleCallback: Application.ActivityLifecycleCallbacks? = null
   private var isMonitoring = false
   private var observerCount = 0
 
@@ -61,25 +69,48 @@ internal class ClipboardToolkitImpl(
     return withContext(Dispatchers.IO) { readSnapshot().containsText() }
   }
 
-  override fun setContents(contents: List<ClipboardContent>) {
-    if (contents.isEmpty()) {
-      clear()
-      return
-    }
-    val clipData = buildClipData(contents)
-    clipboardManager.setPrimaryClip(clipData)
-  }
-
-  override fun setText(text: String) {
-    setContents(listOf(ClipboardContent.Text(text)))
-  }
-
-  override fun clear() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-      clipboardManager.clearPrimaryClip()
-    } else {
-      val clipData = ClipData.newPlainText(CLIP_LABEL, "")
+  override suspend fun setContents(
+    contents: List<ClipboardWriteContent>,
+    options: ClipboardWriteOptions,
+  ) {
+    withContext(Dispatchers.IO) {
+      if (contents.isEmpty()) {
+        clear()
+        return@withContext
+      }
+      val clipData = buildClipData(contents)
+      clipData.applyOptions(options)
       clipboardManager.setPrimaryClip(clipData)
+    }
+  }
+
+  override suspend fun setText(
+    text: String,
+    options: ClipboardWriteOptions,
+  ) {
+    setContents(listOf(ClipboardWriteContent.Text(text)), options)
+  }
+
+  override suspend fun clear() {
+    withContext(Dispatchers.IO) {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        clipboardManager.clearPrimaryClip()
+      } else {
+        val clipData = ClipData.newPlainText(CLIP_LABEL, "")
+        clipboardManager.setPrimaryClip(clipData)
+      }
+    }
+  }
+
+  override suspend fun readImageBytes(
+    image: ClipboardContent.Image,
+    maxBytes: Long,
+  ): ByteArray? {
+    if (maxBytes < 0) return null
+    return withContext(Dispatchers.IO) {
+      if (image.sizeBytes != null && image.sizeBytes > maxBytes) return@withContext null
+      val uri = image.uri?.toUri() ?: image.id.toUri()
+      readBytes(uri, maxBytes)
     }
   }
 
@@ -107,8 +138,28 @@ internal class ClipboardToolkitImpl(
     val newListener = ClipboardManager.OnPrimaryClipChangedListener {
       updateSnapshotState()
     }
+    val newLifecycleCallback = object : Application.ActivityLifecycleCallbacks {
+      override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+
+      override fun onActivityStarted(activity: Activity) = Unit
+
+      override fun onActivityResumed(activity: Activity) {
+        updateSnapshotState()
+      }
+
+      override fun onActivityPaused(activity: Activity) = Unit
+
+      override fun onActivityStopped(activity: Activity) = Unit
+
+      override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+
+      override fun onActivityDestroyed(activity: Activity) = Unit
+    }
     listener = newListener
+    lifecycleCallback = newLifecycleCallback
     clipboardManager.addPrimaryClipChangedListener(newListener)
+    ActivityLifecycleRegistry.initialize(context)
+    ActivityLifecycleRegistry.register(newLifecycleCallback)
     updateSnapshotState()
     isMonitoring = true
   }
@@ -116,7 +167,9 @@ internal class ClipboardToolkitImpl(
   private fun stopMonitoringInternal() {
     val currentListener = listener ?: return
     clipboardManager.removePrimaryClipChangedListener(currentListener)
+    lifecycleCallback?.let(ActivityLifecycleRegistry::unregister)
     listener = null
+    lifecycleCallback = null
     isMonitoring = false
   }
 
@@ -147,8 +200,12 @@ internal class ClipboardToolkitImpl(
     if (uri != null) {
       val mimeType = context.contentResolver.getType(uri)
       if (mimeType?.startsWith("image/") == true) {
-        val bytes = readBytes(uri) ?: return ClipboardContent.Uri(uri.toString())
-        return ClipboardContent.Image(bytes, mimeType)
+        return ClipboardContent.Image(
+          id = uri.toString(),
+          mimeType = mimeType,
+          sizeBytes = querySize(uri),
+          uri = uri.toString(),
+        )
       }
       return ClipboardContent.Uri(uri.toString())
     }
@@ -156,7 +213,7 @@ internal class ClipboardToolkitImpl(
     val htmlText = item.htmlText
     if (htmlText != null) {
       return ClipboardContent.RichText(
-        text = htmlText,
+        content = htmlText,
         format = RichTextFormat.HTML,
         plainText = item.text?.toString(),
       )
@@ -170,7 +227,7 @@ internal class ClipboardToolkitImpl(
     return null
   }
 
-  private fun buildClipData(contents: List<ClipboardContent>): ClipData {
+  private fun buildClipData(contents: List<ClipboardWriteContent>): ClipData {
     val first = contents.first()
     val clipData = buildClipDataForContent(first)
     contents.drop(1).forEach { content ->
@@ -179,25 +236,25 @@ internal class ClipboardToolkitImpl(
     return clipData
   }
 
-  private fun buildClipDataForContent(content: ClipboardContent): ClipData {
+  private fun buildClipDataForContent(content: ClipboardWriteContent): ClipData {
     return when (content) {
-      is ClipboardContent.Text ->
+      is ClipboardWriteContent.Text ->
         ClipData.newPlainText(CLIP_LABEL, content.text)
-      is ClipboardContent.RichText -> buildRichTextClipData(content)
-      is ClipboardContent.Uri -> buildUriClipData(content)
-      is ClipboardContent.Image -> buildImageClipData(content)
+      is ClipboardWriteContent.RichText -> buildRichTextClipData(content)
+      is ClipboardWriteContent.Uri -> buildUriClipData(content)
+      is ClipboardWriteContent.Image -> buildImageClipData(content)
     }
   }
 
-  private fun buildClipItem(content: ClipboardContent): ClipData.Item {
+  private fun buildClipItem(content: ClipboardWriteContent): ClipData.Item {
     return when (content) {
-      is ClipboardContent.Text -> ClipData.Item(content.text)
-      is ClipboardContent.RichText -> ClipData.Item(
-        content.plainText ?: content.text,
-        content.text,
+      is ClipboardWriteContent.Text -> ClipData.Item(content.text)
+      is ClipboardWriteContent.RichText -> ClipData.Item(
+        content.plainText ?: content.content,
+        content.content,
       )
-      is ClipboardContent.Uri -> ClipData.Item(content.uri.toUri())
-      is ClipboardContent.Image -> ClipData.Item(
+      is ClipboardWriteContent.Uri -> ClipData.Item(content.uri.toUri())
+      is ClipboardWriteContent.Image -> ClipData.Item(
         requireNotNull(createImageUri(content)) {
           "Clipboard image cannot be written without a valid URI."
         }
@@ -205,39 +262,51 @@ internal class ClipboardToolkitImpl(
     }
   }
 
-  private fun buildRichTextClipData(content: ClipboardContent.RichText): ClipData {
+  private fun buildRichTextClipData(content: ClipboardWriteContent.RichText): ClipData {
     if (content.format == RichTextFormat.HTML) {
       return ClipData.newHtmlText(
         CLIP_LABEL,
-        content.plainText ?: content.text,
-        content.text,
+        content.plainText ?: content.content,
+        content.content,
       )
     }
     return ClipData.newPlainText(
       CLIP_LABEL,
-      content.plainText ?: content.text,
+      content.plainText ?: content.content,
     )
   }
 
-  private fun buildUriClipData(content: ClipboardContent.Uri): ClipData {
+  private fun buildUriClipData(content: ClipboardWriteContent.Uri): ClipData {
     val uri = content.uri.toUri()
     return ClipData.newUri(context.contentResolver, CLIP_LABEL, uri)
   }
 
-  private fun buildImageClipData(content: ClipboardContent.Image): ClipData {
+  private fun buildImageClipData(content: ClipboardWriteContent.Image): ClipData {
     val uri = requireNotNull(createImageUri(content)) {
       "Clipboard image cannot be written without a valid URI."
     }
     return ClipData.newUri(context.contentResolver, CLIP_LABEL, uri)
   }
 
-  private fun createImageUri(content: ClipboardContent.Image): Uri? {
+  private fun createImageUri(content: ClipboardWriteContent.Image): Uri? {
     return ClipboardImageStore.writeImage(context, content.bytes, content.mimeType)
   }
 
-  private fun readBytes(uri: Uri): ByteArray? {
+  private fun readBytes(uri: Uri, maxBytes: Long): ByteArray? {
     return try {
-      context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+      context.contentResolver.openInputStream(uri)?.use { input ->
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        var total = 0L
+        while (true) {
+          val read = input.read(buffer)
+          if (read == -1) break
+          total += read
+          if (total > maxBytes) return null
+          output.write(buffer, 0, read)
+        }
+        output.toByteArray()
+      }
     } catch (_: IOException) {
       null
     } catch (_: SecurityException) {
@@ -245,20 +314,55 @@ internal class ClipboardToolkitImpl(
     }
   }
 
+  private fun querySize(uri: Uri): Long? {
+    return try {
+      context.contentResolver.query(
+        uri,
+        arrayOf(OpenableColumns.SIZE),
+        null,
+        null,
+        null,
+      )?.use { cursor ->
+        if (!cursor.moveToFirst()) return@use null
+        val index = cursor.getColumnIndex(OpenableColumns.SIZE)
+        if (index == -1 || cursor.isNull(index)) null else cursor.getLong(index)
+      }
+    } catch (_: SecurityException) {
+      null
+    }
+  }
+
+  private fun ClipData.applyOptions(options: ClipboardWriteOptions) {
+    if (!options.isSensitive) return
+    description.extras = PersistableBundle().apply {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+      } else {
+        putBoolean(EXTRA_IS_SENSITIVE_LEGACY, true)
+      }
+    }
+  }
+
   companion object {
     private const val CLIP_LABEL = "clipboard"
+    private const val EXTRA_IS_SENSITIVE_LEGACY = "android.content.extra.IS_SENSITIVE"
   }
 }
 
 private object ClipboardImageStore {
 
   private const val CACHE_DIR = "toolkit_clipboard"
+  private const val MAX_CACHE_FILES = 8
+  private const val MAX_CACHE_AGE_MILLIS = 24L * 60L * 60L * 1000L
+  private const val FILE_PREFIX = "clipboard_"
 
   fun writeImage(context: Context, bytes: ByteArray, mimeType: String?): Uri? {
     val extension = mimeType?.substringAfter('/')?.takeIf { it.isNotBlank() } ?: "png"
     return try {
+      prune(context)
       val file = createTargetFile(context, extension)
       file.outputStream().use { it.write(bytes) }
+      prune(context)
       FileProvider.getUriForFile(
         context,
         "${context.packageName}.toolkit-clipboard",
@@ -274,6 +378,21 @@ private object ClipboardImageStore {
     if (!dir.exists()) {
       dir.mkdirs()
     }
-    return File.createTempFile("clipboard_", ".$extension", dir)
+    return File.createTempFile(FILE_PREFIX, ".$extension", dir)
+  }
+
+  private fun prune(context: Context) {
+    val dir = File(context.cacheDir, CACHE_DIR)
+    val files = dir.listFiles()
+      ?.filter { it.isFile && it.name.startsWith(FILE_PREFIX) }
+      ?.sortedByDescending { it.lastModified() }
+      ?: return
+    val now = System.currentTimeMillis()
+    files.forEachIndexed { index, file ->
+      val isStale = now - file.lastModified() > MAX_CACHE_AGE_MILLIS
+      if (isStale || index >= MAX_CACHE_FILES) {
+        file.delete()
+      }
+    }
   }
 }

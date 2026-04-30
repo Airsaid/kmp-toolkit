@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.airsaid.toolkit.ClipboardContent
 import com.airsaid.toolkit.ClipboardSnapshot
+import com.airsaid.toolkit.ClipboardWriteContent
 import com.airsaid.toolkit.RichTextFormat
 import com.airsaid.toolkit.Toolkit
 import com.airsaid.toolkit.demo.resources.Res
@@ -58,6 +59,7 @@ fun ToolkitClipboardScreen(modifier: Modifier = Modifier) {
   var latestText by remember { mutableStateOf<String?>(null) }
   var latestSnapshot by remember { mutableStateOf<ClipboardSnapshot?>(null) }
   var latestImageMissingLogo by remember { mutableStateOf(false) }
+  var latestImageBytesSize by remember { mutableStateOf<Int?>(null) }
   var isObserving by remember { mutableStateOf(false) }
 
   LaunchedEffect(isObserving) {
@@ -66,6 +68,7 @@ fun ToolkitClipboardScreen(modifier: Modifier = Modifier) {
       latestSnapshot = snapshot
       latestText = snapshot.firstTextOrNull()
       latestImageMissingLogo = false
+      latestImageBytesSize = null
     }
   }
 
@@ -86,21 +89,25 @@ fun ToolkitClipboardScreen(modifier: Modifier = Modifier) {
       verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
       Button(onClick = {
-        clipboard.setText(inputText)
+        scope.launch {
+          clipboard.setText(inputText)
+        }
       }) {
         Text(text = stringResource(Res.string.action_write))
       }
       OutlinedButton(onClick = {
-        clipboard.setContents(
-          listOf(
-            ClipboardContent.RichText(
-              text = "<b>${inputText}</b>",
-              format = RichTextFormat.HTML,
-              plainText = inputText,
-            ),
-            ClipboardContent.Uri("https://example.com"),
+        scope.launch {
+          clipboard.setContents(
+            listOf(
+              ClipboardWriteContent.RichText(
+                content = "<b>${inputText}</b>",
+                format = RichTextFormat.HTML,
+                plainText = inputText,
+              ),
+              ClipboardWriteContent.Uri("https://example.com"),
+            )
           )
-        )
+        }
       }) {
         Text(text = stringResource(Res.string.action_write_rich_text_uri))
       }
@@ -111,9 +118,11 @@ fun ToolkitClipboardScreen(modifier: Modifier = Modifier) {
           return@OutlinedButton
         }
         latestImageMissingLogo = false
-        clipboard.setContents(
-          listOf(ClipboardContent.Image(bytes, "image/png"))
-        )
+        scope.launch {
+          clipboard.setContents(
+            listOf(ClipboardWriteContent.Image(bytes, "image/png"))
+          )
+        }
       }) {
         Text(text = stringResource(Res.string.action_write_image))
       }
@@ -123,6 +132,7 @@ fun ToolkitClipboardScreen(modifier: Modifier = Modifier) {
           latestSnapshot = snapshot
           latestText = snapshot.firstTextOrNull()
           latestImageMissingLogo = false
+          latestImageBytesSize = null
         }
       }) {
         Text(text = stringResource(Res.string.action_read))
@@ -131,13 +141,17 @@ fun ToolkitClipboardScreen(modifier: Modifier = Modifier) {
         scope.launch {
           val snapshot = clipboard.getSnapshot()
           latestSnapshot = snapshot
+          latestImageBytesSize = snapshot.firstImageOrNull()
+            ?.let { clipboard.readImageBytes(it)?.size }
           latestImageMissingLogo = false
         }
       }) {
         Text(text = stringResource(Res.string.action_read_image))
       }
       OutlinedButton(onClick = {
-        clipboard.clear()
+        scope.launch {
+          clipboard.clear()
+        }
       }) {
         Text(text = stringResource(Res.string.action_clear))
       }
@@ -156,7 +170,7 @@ fun ToolkitClipboardScreen(modifier: Modifier = Modifier) {
       Res.string.clipboard_image_status,
       when {
         latestImageMissingLogo -> stringResource(Res.string.app_logo_not_found)
-        latestSnapshot != null -> latestSnapshot.imageInfo()
+        latestSnapshot != null -> latestSnapshot.imageInfo(latestImageBytesSize)
         else -> "-"
       },
     ),
@@ -174,7 +188,7 @@ private fun ClipboardSnapshot.firstTextOrNull(): String? {
   return contents.firstNotNullOfOrNull { content ->
     when (content) {
       is ClipboardContent.Text -> content.text
-      is ClipboardContent.RichText -> content.plainText ?: content.text
+      is ClipboardContent.RichText -> content.plainText ?: content.content
       else -> null
     }
   }
@@ -205,8 +219,9 @@ private fun ClipboardSnapshot.firstImageOrNull(): ClipboardContent.Image? {
 }
 
 @Composable
-private fun ClipboardSnapshot?.imageInfo(): String {
+private fun ClipboardSnapshot?.imageInfo(bytesSize: Int?): String {
   val image = this?.firstImageOrNull() ?: return stringResource(Res.string.image_not_found)
   val type = image.mimeType ?: "-"
-  return stringResource(Res.string.image_info_format, image.bytes.size, type)
+  val size = bytesSize ?: image.sizeBytes ?: 0
+  return stringResource(Res.string.image_info_format, size, type)
 }

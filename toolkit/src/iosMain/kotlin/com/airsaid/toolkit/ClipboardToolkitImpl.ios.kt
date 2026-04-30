@@ -66,25 +66,54 @@ internal class ClipboardToolkitImpl : ClipboardToolkit {
     return withContext(Dispatchers.Default) { readSnapshot().containsText() }
   }
 
-  override fun setContents(contents: List<ClipboardContent>) {
-    if (contents.isEmpty()) {
-      clear()
-      return
+  override suspend fun setContents(
+    contents: List<ClipboardWriteContent>,
+    options: ClipboardWriteOptions,
+  ) {
+    withContext(Dispatchers.Default) {
+      if (contents.isEmpty()) {
+        clear()
+        return@withContext
+      }
+      val items = contents.mapNotNull { buildPasteboardItem(it) }
+      if (items.isEmpty()) {
+        clear()
+        return@withContext
+      }
+      pasteboard.items = items
     }
-    val items = contents.mapNotNull { buildPasteboardItem(it) }
-    if (items.isEmpty()) {
-      clear()
-      return
-    }
-    pasteboard.items = items
   }
 
-  override fun setText(text: String) {
-    setContents(listOf(ClipboardContent.Text(text)))
+  override suspend fun setText(
+    text: String,
+    options: ClipboardWriteOptions,
+  ) {
+    setContents(listOf(ClipboardWriteContent.Text(text)), options)
   }
 
-  override fun clear() {
-    pasteboard.string = null
+  override suspend fun clear() {
+    withContext(Dispatchers.Default) {
+      pasteboard.string = null
+    }
+  }
+
+  override suspend fun readImageBytes(
+    image: ClipboardContent.Image,
+    maxBytes: Long,
+  ): ByteArray? {
+    if (maxBytes < 0) return null
+    return withContext(Dispatchers.Default) {
+      if (image.sizeBytes != null && image.sizeBytes > maxBytes) return@withContext null
+      val reference = ImageReference.parse(image.id) ?: return@withContext null
+      if (reference.changeCount != pasteboard.changeCount.toLong()) return@withContext null
+      if (reference.index == FALLBACK_IMAGE_INDEX) {
+        val data = pasteboard.image?.toPngData() ?: return@withContext null
+        return@withContext data.toByteArray(maxBytes)
+      }
+      val item = pasteboard.items.getOrNull(reference.index) as? Map<*, *> ?: return@withContext null
+      val data = item[reference.uti] as? NSData ?: return@withContext null
+      data.toByteArray(maxBytes)
+    }
   }
 
   private fun onObserverStart() {
@@ -153,48 +182,62 @@ internal class ClipboardToolkitImpl : ClipboardToolkit {
     val contents = mutableListOf<ClipboardContent>()
     val items = pasteboard.items
     if (items.isNotEmpty()) {
-      items.forEach { item ->
-        val map = item as? Map<*, *> ?: return@forEach
-        resolveContent(map)?.let { contents.add(it) }
+      items.forEachIndexed { index, item ->
+        val map = item as? Map<*, *> ?: return@forEachIndexed
+        resolveContent(map, index)?.let { contents.add(it) }
       }
     }
     if (contents.isEmpty()) {
       pasteboard.string?.let { contents.add(ClipboardContent.Text(it)) }
       pasteboard.URL?.absoluteString?.let { contents.add(ClipboardContent.Uri(it)) }
-      pasteboard.image?.let { image ->
-        image.toPngData()?.let { data ->
-          contents.add(ClipboardContent.Image(data.toByteArray(), MIME_TYPE_PNG))
-        }
+      pasteboard.image?.let {
+        contents.add(
+          ClipboardContent.Image(
+            id = ImageReference(pasteboard.changeCount.toLong(), FALLBACK_IMAGE_INDEX, UTI_PNG).id,
+            mimeType = MIME_TYPE_PNG,
+          )
+        )
       }
     }
     return ClipboardSnapshot(contents)
   }
 
-  private fun resolveContent(item: Map<*, *>): ClipboardContent? {
+  private fun resolveContent(item: Map<*, *>, index: Int): ClipboardContent? {
+    val plainText = item[UTI_PLAIN_TEXT] as? String
     val htmlData = item[UTI_HTML] as? NSData
     if (htmlData != null) {
       return ClipboardContent.RichText(
-        text = htmlData.toUtf8String().orEmpty(),
+        content = htmlData.toUtf8String().orEmpty(),
         format = RichTextFormat.HTML,
+        plainText = plainText,
       )
     }
 
     val rtfData = item[UTI_RTF] as? NSData
     if (rtfData != null) {
       return ClipboardContent.RichText(
-        text = rtfData.toUtf8String().orEmpty(),
+        content = rtfData.toUtf8String().orEmpty(),
         format = RichTextFormat.RTF,
+        plainText = plainText,
       )
     }
 
     val pngData = item[UTI_PNG] as? NSData
     if (pngData != null) {
-      return ClipboardContent.Image(pngData.toByteArray(), MIME_TYPE_PNG)
+      return ClipboardContent.Image(
+        id = ImageReference(pasteboard.changeCount.toLong(), index, UTI_PNG).id,
+        mimeType = MIME_TYPE_PNG,
+        sizeBytes = pngData.length.toLong(),
+      )
     }
 
     val jpegData = item[UTI_JPEG] as? NSData
     if (jpegData != null) {
-      return ClipboardContent.Image(jpegData.toByteArray(), MIME_TYPE_JPEG)
+      return ClipboardContent.Image(
+        id = ImageReference(pasteboard.changeCount.toLong(), index, UTI_JPEG).id,
+        mimeType = MIME_TYPE_JPEG,
+        sizeBytes = jpegData.length.toLong(),
+      )
     }
 
     val urlValue = item[UTI_URL]
@@ -212,29 +255,29 @@ internal class ClipboardToolkitImpl : ClipboardToolkit {
     return null
   }
 
-  private fun buildPasteboardItem(content: ClipboardContent): Map<Any?, Any?>? {
+  private fun buildPasteboardItem(content: ClipboardWriteContent): Map<Any?, Any?>? {
     return when (content) {
-      is ClipboardContent.Text -> mapOf(UTI_PLAIN_TEXT to content.text)
-      is ClipboardContent.RichText -> buildRichTextItem(content)
-      is ClipboardContent.Uri -> {
+      is ClipboardWriteContent.Text -> mapOf(UTI_PLAIN_TEXT to content.text)
+      is ClipboardWriteContent.RichText -> buildRichTextItem(content)
+      is ClipboardWriteContent.Uri -> {
         val url = NSURL(string = content.uri) ?: return null
         mapOf(UTI_URL to url)
       }
-      is ClipboardContent.Image -> buildImageItem(content)
+      is ClipboardWriteContent.Image -> buildImageItem(content)
     }
   }
 
-  private fun buildRichTextItem(content: ClipboardContent.RichText): Map<Any?, Any?> {
+  private fun buildRichTextItem(content: ClipboardWriteContent.RichText): Map<Any?, Any?> {
     return when (content.format) {
       RichTextFormat.HTML -> {
-        buildStringFallback(UTI_HTML, content.text, content.plainText)
+        buildStringFallback(UTI_HTML, content.content, content.plainText)
       }
       RichTextFormat.RTF -> {
-        buildStringFallback(UTI_RTF, content.text, content.plainText)
+        buildStringFallback(UTI_RTF, content.content, content.plainText)
       }
       RichTextFormat.MARKDOWN,
       RichTextFormat.UNKNOWN,
-      -> mapOf(UTI_PLAIN_TEXT to (content.plainText ?: content.text))
+      -> mapOf(UTI_PLAIN_TEXT to (content.plainText ?: content.content))
     }
   }
 
@@ -251,7 +294,7 @@ internal class ClipboardToolkitImpl : ClipboardToolkit {
     return map
   }
 
-  private fun buildImageItem(content: ClipboardContent.Image): Map<Any?, Any?>? {
+  private fun buildImageItem(content: ClipboardWriteContent.Image): Map<Any?, Any?>? {
     val image = imageFromBytes(content.bytes) ?: return null
     val isJpeg = content.mimeType?.lowercase() == MIME_TYPE_JPEG
     val data = if (isJpeg) {
@@ -274,6 +317,28 @@ internal class ClipboardToolkitImpl : ClipboardToolkit {
 
 }
 
+private data class ImageReference(
+  val changeCount: Long,
+  val index: Int,
+  val uti: String,
+) {
+  val id: String
+    get() = "$IMAGE_REFERENCE_PREFIX$changeCount:$index:$uti"
+
+  companion object {
+    fun parse(id: String): ImageReference? {
+      if (!id.startsWith(IMAGE_REFERENCE_PREFIX)) return null
+      val parts = id.removePrefix(IMAGE_REFERENCE_PREFIX).split(':', limit = 3)
+      if (parts.size != 3) return null
+      return ImageReference(
+        changeCount = parts[0].toLongOrNull() ?: return null,
+        index = parts[1].toIntOrNull() ?: return null,
+        uti = parts[2],
+      )
+    }
+  }
+}
+
 private const val UTI_PLAIN_TEXT = "public.utf8-plain-text"
 private const val UTI_URL = "public.url"
 private const val UTI_HTML = "public.html"
@@ -282,6 +347,8 @@ private const val UTI_PNG = "public.png"
 private const val UTI_JPEG = "public.jpeg"
 private const val MIME_TYPE_PNG = "image/png"
 private const val MIME_TYPE_JPEG = "image/jpeg"
+private const val IMAGE_REFERENCE_PREFIX = "ios-pasteboard-image:"
+private const val FALLBACK_IMAGE_INDEX = -1
 
 @OptIn(ExperimentalForeignApi::class)
 private fun NSData.toByteArray(): ByteArray {
@@ -292,6 +359,11 @@ private fun NSData.toByteArray(): ByteArray {
     memcpy(pinned.addressOf(0), this.bytes, length.toULong())
   }
   return bytes
+}
+
+private fun NSData.toByteArray(maxBytes: Long): ByteArray? {
+  if (length.toLong() > maxBytes) return null
+  return toByteArray()
 }
 
 private fun NSData.toUtf8String(): String? {

@@ -112,36 +112,44 @@ println(device.locale.preferred)
 
 ## 剪贴板
 
-使用 `Toolkit.clipboard()` 读取、写入、清空并监听剪贴板内容。文本、富文本、URI 与图片内容由 `ClipboardContent` 表示。
+使用 `Toolkit.clipboard()` 读取、写入、清空并监听剪贴板内容。读取快照使用 `ClipboardContent`，写入使用 `ClipboardWriteContent`。图片快照是轻量引用，只有显式请求时才读取图片字节。
 
 ```kotlin
 val clipboard = Toolkit.clipboard()
 
-clipboard.setText("hello")
+scope.launch {
+  clipboard.setText("hello")
 
-clipboard.setContents(
-  listOf(
-    ClipboardContent.RichText(
-      text = "<p><b>Hello</b></p>",
-      format = RichTextFormat.HTML,
-      plainText = "Hello",
-    ),
-    ClipboardContent.Uri("https://example.com"),
+  clipboard.setContents(
+    listOf(
+      ClipboardWriteContent.RichText(
+        content = "<p><b>Hello</b></p>",
+        format = RichTextFormat.HTML,
+        plainText = "Hello",
+      ),
+      ClipboardWriteContent.Uri("https://example.com"),
+    )
   )
-)
 
-val snapshot = clipboard.getSnapshot()
-val text = clipboard.getText()
-val hasText = clipboard.hasText()
+  val snapshot = clipboard.getSnapshot()
+  val text = clipboard.getText()
+  val hasText = clipboard.hasText()
+  val imageBytes = snapshot.contents
+    .filterIsInstance<ClipboardContent.Image>()
+    .firstOrNull()
+    ?.let { clipboard.readImageBytes(it) }
+
+  clipboard.clear()
+}
 
 scope.launch {
   clipboard.observeClipboard().collect { latest ->
     println(latest.contents)
   }
 }
-
-clipboard.clear()
 ```
+
+在 Android 上复制敏感内容时，可传入 `ClipboardWriteOptions(isSensitive = true)` 以在支持的平台隐藏系统剪贴板预览。
 
 Android 剪贴板与文件类分享会使用基于接入方应用 id 的 `FileProvider` authority：`${applicationId}.toolkit-clipboard`。
 

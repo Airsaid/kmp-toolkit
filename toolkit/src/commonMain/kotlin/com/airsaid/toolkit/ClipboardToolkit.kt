@@ -18,7 +18,7 @@ sealed interface ClipboardContent {
    * Rich text clipboard content, such as HTML or RTF.
    */
   data class RichText(
-    val text: String,
+    val content: String,
     val format: RichTextFormat,
     val plainText: String? = null,
   ) : ClipboardContent
@@ -31,12 +31,51 @@ sealed interface ClipboardContent {
   ) : ClipboardContent
 
   /**
+   * Image clipboard content reference.
+   */
+  data class Image(
+    val id: String,
+    val mimeType: String? = null,
+    val sizeBytes: Long? = null,
+    val uri: String? = null,
+  ) : ClipboardContent
+}
+
+/**
+ * Clipboard content representation used for writes.
+ */
+sealed interface ClipboardWriteContent {
+
+  /**
+   * Plain text clipboard content.
+   */
+  data class Text(
+    val text: String,
+  ) : ClipboardWriteContent
+
+  /**
+   * Rich text clipboard content, such as HTML or RTF.
+   */
+  data class RichText(
+    val content: String,
+    val format: RichTextFormat,
+    val plainText: String? = null,
+  ) : ClipboardWriteContent
+
+  /**
+   * URI clipboard content.
+   */
+  data class Uri(
+    val uri: String,
+  ) : ClipboardWriteContent
+
+  /**
    * Image clipboard content.
    */
-  class Image(
+  data class Image(
     val bytes: ByteArray,
     val mimeType: String? = null,
-  ) : ClipboardContent {
+  ) : ClipboardWriteContent {
 
     override fun equals(other: Any?): Boolean {
       if (this === other) return true
@@ -52,6 +91,13 @@ sealed interface ClipboardContent {
     }
   }
 }
+
+/**
+ * Options applied when writing clipboard contents.
+ */
+data class ClipboardWriteOptions(
+  val isSensitive: Boolean = false,
+)
 
 /**
  * Rich text formats supported by clipboard.
@@ -73,6 +119,8 @@ data class ClipboardSnapshot(
   val isEmpty: Boolean
     get() = contents.isEmpty()
 }
+
+const val DEFAULT_MAX_IMAGE_BYTES: Long = 10L * 1024L * 1024L
 
 /**
  * Provides cross-platform clipboard access.
@@ -102,17 +150,31 @@ interface ClipboardToolkit {
   /**
    * Writes contents to the clipboard.
    */
-  fun setContents(contents: List<ClipboardContent>)
+  suspend fun setContents(
+    contents: List<ClipboardWriteContent>,
+    options: ClipboardWriteOptions = ClipboardWriteOptions(),
+  )
 
   /**
    * Writes plain text to the clipboard.
    */
-  fun setText(text: String)
+  suspend fun setText(
+    text: String,
+    options: ClipboardWriteOptions = ClipboardWriteOptions(),
+  )
 
   /**
    * Clears the clipboard content when supported.
    */
-  fun clear()
+  suspend fun clear()
+
+  /**
+   * Reads image bytes for a clipboard image reference.
+   */
+  suspend fun readImageBytes(
+    image: ClipboardContent.Image,
+    maxBytes: Long = DEFAULT_MAX_IMAGE_BYTES,
+  ): ByteArray?
 }
 
 /**
@@ -130,35 +192,12 @@ internal class ClipboardSnapshotTracker(
   initialSnapshot: ClipboardSnapshot,
 ) {
 
-  private var lastSignature: Int = initialSnapshot.signature()
+  private var lastSnapshot: ClipboardSnapshot = initialSnapshot
 
   fun update(newSnapshot: ClipboardSnapshot): ClipboardSnapshot? {
-    val signature = newSnapshot.signature()
-    if (signature == lastSignature) return null
-    lastSignature = signature
+    if (newSnapshot == lastSnapshot) return null
+    lastSnapshot = newSnapshot
     return newSnapshot
-  }
-}
-
-internal fun ClipboardSnapshot.signature(): Int {
-  var result = 1
-  contents.forEach { content ->
-    result = 31 * result + content.signature()
-  }
-  return result
-}
-
-internal fun ClipboardContent.signature(): Int {
-  return when (this) {
-    is ClipboardContent.Text -> text.hashCode()
-    is ClipboardContent.RichText -> {
-      var result = format.hashCode()
-      result = 31 * result + text.hashCode()
-      result = 31 * result + (plainText?.hashCode() ?: 0)
-      result
-    }
-    is ClipboardContent.Uri -> uri.hashCode()
-    is ClipboardContent.Image -> hashCode()
   }
 }
 
@@ -166,7 +205,7 @@ internal fun ClipboardSnapshot.firstTextOrNull(): String? {
   return contents.firstNotNullOfOrNull { content ->
     when (content) {
       is ClipboardContent.Text -> content.text
-      is ClipboardContent.RichText -> content.plainText ?: content.text
+      is ClipboardContent.RichText -> content.plainText ?: content.content
       else -> null
     }
   }

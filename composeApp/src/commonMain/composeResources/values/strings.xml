@@ -26,25 +26,31 @@ println(info.buildNumber)]]></string>
   <string name="demo_clipboard_title">Clipboard read, write, and observe</string>
   <string name="demo_clipboard_description">Write, read, and observe clipboard changes across multiple content types.</string>
   <string name="demo_clipboard_code"><![CDATA[val clipboard = Toolkit.clipboard()
-clipboard.setText("hello")
-clipboard.setContents(
-  listOf(
-    ClipboardContent.RichText(
-      text = "<b>Hello</b>",
-      format = RichTextFormat.HTML,
-      plainText = "Hello",
-    ),
-    ClipboardContent.Uri("https://example.com"),
+scope.launch {
+  clipboard.setText("hello")
+  clipboard.setContents(
+    listOf(
+      ClipboardWriteContent.RichText(
+        content = "<b>Hello</b>",
+        format = RichTextFormat.HTML,
+        plainText = "Hello",
+      ),
+      ClipboardWriteContent.Uri("https://example.com"),
+    )
   )
-)
-val snapshot = clipboard.getSnapshot()
-val text = clipboard.getText()
+  val snapshot = clipboard.getSnapshot()
+  val text = clipboard.getText()
+  val imageBytes = snapshot.contents
+    .filterIsInstance<ClipboardContent.Image>()
+    .firstOrNull()
+    ?.let { clipboard.readImageBytes(it) }
+  clipboard.clear()
+}
 scope.launch {
   clipboard.observeClipboard().collect { latest ->
 
   }
-}
-clipboard.clear()]]></string>
+}]]></string>
   <string name="demo_haptic_title">Haptic feedback</string>
   <string name="demo_haptic_description">Trigger selection, success, warning, and error feedback.</string>
   <string name="demo_haptic_code"><![CDATA[val haptics = Toolkit.haptics()
@@ -222,7 +228,7 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="clipboard_content_image">Image</string>
   <string name="image_not_found">Image not found</string>
   <string name="app_logo_not_found">App logo not found</string>
-  <string name="image_info_format">Image bytes: %1$s, type: %2$s</string>
+  <string name="image_info_format">Image size: %1$s bytes, type: %2$s</string>
 
   <string name="haptic_selection">Selection</string>
   <string name="haptic_success">Success</string>

@@ -39,13 +39,23 @@ class ClipboardSnapshotTrackerTest {
   fun updateReturnsNullWhenImageContentUnchanged() {
     val snapshot = ClipboardSnapshot(
       contents = listOf(
-        ClipboardContent.Image(byteArrayOf(1, 2, 3), "image/png"),
+        ClipboardContent.Image(
+          id = "image-1",
+          mimeType = "image/png",
+          sizeBytes = 3,
+          uri = "content://example/image-1",
+        ),
       ),
     )
     val tracker = ClipboardSnapshotTracker(snapshot)
     val updated = ClipboardSnapshot(
       contents = listOf(
-        ClipboardContent.Image(byteArrayOf(1, 2, 3), "image/png"),
+        ClipboardContent.Image(
+          id = "image-1",
+          mimeType = "image/png",
+          sizeBytes = 3,
+          uri = "content://example/image-1",
+        ),
       ),
     )
 
@@ -59,7 +69,7 @@ class ClipboardSnapshotTrackerTest {
     val snapshot = ClipboardSnapshot(
       contents = listOf(
         ClipboardContent.RichText(
-          text = "<b>Hello</b>",
+          content = "<b>Hello</b>",
           format = RichTextFormat.HTML,
           plainText = "Hello",
         ),
@@ -78,19 +88,52 @@ class ClipboardSnapshotTrackerTest {
     val richSnapshot = ClipboardSnapshot(
       contents = listOf(
         ClipboardContent.RichText(
-          text = "# hi",
+          content = "# hi",
           format = RichTextFormat.MARKDOWN,
         ),
       ),
     )
     val imageSnapshot = ClipboardSnapshot(
       contents = listOf(
-        ClipboardContent.Image(byteArrayOf(1), "image/png"),
+        ClipboardContent.Image(
+          id = "image-1",
+          mimeType = "image/png",
+          sizeBytes = 1,
+        ),
       ),
     )
 
     assertTrue(textSnapshot.containsText())
     assertTrue(richSnapshot.containsText())
     assertFalse(imageSnapshot.containsText())
+  }
+
+  @Test
+  fun imageReferenceDoesNotStoreBytes() {
+    val image = ClipboardContent.Image(
+      id = "image-1",
+      mimeType = "image/png",
+      sizeBytes = 1024,
+      uri = "content://example/image-1",
+    )
+
+    assertEquals("image-1", image.id)
+    assertEquals("image/png", image.mimeType)
+    assertEquals(1024, image.sizeBytes)
+    assertEquals("content://example/image-1", image.uri)
+  }
+
+  @Test
+  fun writeImageContentStoresBytesForExplicitWrites() {
+    val bytes = byteArrayOf(1, 2, 3)
+    val image = ClipboardWriteContent.Image(bytes, "image/png")
+
+    assertTrue(bytes.contentEquals(image.bytes))
+    assertEquals("image/png", image.mimeType)
+  }
+
+  @Test
+  fun defaultWriteOptionsAreNotSensitive() {
+    assertFalse(ClipboardWriteOptions().isSensitive)
   }
 }

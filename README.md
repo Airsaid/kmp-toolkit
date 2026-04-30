@@ -70,7 +70,9 @@ val networkMonitor = Toolkit.network()
 networkMonitor.startMonitoring()
 
 val clipboard = Toolkit.clipboard()
-clipboard.setText("hello")
+scope.launch {
+  clipboard.setText("hello")
+}
 
 val haptics = Toolkit.haptics()
 haptics.perform(HapticFeedbackType.SUCCESS)

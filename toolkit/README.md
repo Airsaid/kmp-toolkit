@@ -112,36 +112,44 @@ Screen and manufacturer values are platform-derived and should be treated as run
 
 ## Clipboard
 
-Use `Toolkit.clipboard()` to read, write, clear, and observe clipboard contents. Text, rich text, URI, and image entries are represented by `ClipboardContent`.
+Use `Toolkit.clipboard()` to read, write, clear, and observe clipboard contents. Read snapshots use `ClipboardContent`; writes use `ClipboardWriteContent`. Image snapshots are lightweight references, and image bytes are read only when requested.
 
 ```kotlin
 val clipboard = Toolkit.clipboard()
 
-clipboard.setText("hello")
+scope.launch {
+  clipboard.setText("hello")
 
-clipboard.setContents(
-  listOf(
-    ClipboardContent.RichText(
-      text = "<p><b>Hello</b></p>",
-      format = RichTextFormat.HTML,
-      plainText = "Hello",
-    ),
-    ClipboardContent.Uri("https://example.com"),
+  clipboard.setContents(
+    listOf(
+      ClipboardWriteContent.RichText(
+        content = "<p><b>Hello</b></p>",
+        format = RichTextFormat.HTML,
+        plainText = "Hello",
+      ),
+      ClipboardWriteContent.Uri("https://example.com"),
+    )
   )
-)
 
-val snapshot = clipboard.getSnapshot()
-val text = clipboard.getText()
-val hasText = clipboard.hasText()
+  val snapshot = clipboard.getSnapshot()
+  val text = clipboard.getText()
+  val hasText = clipboard.hasText()
+  val imageBytes = snapshot.contents
+    .filterIsInstance<ClipboardContent.Image>()
+    .firstOrNull()
+    ?.let { clipboard.readImageBytes(it) }
+
+  clipboard.clear()
+}
 
 scope.launch {
   clipboard.observeClipboard().collect { latest ->
     println(latest.contents)
   }
 }
-
-clipboard.clear()
 ```
+
+Set `ClipboardWriteOptions(isSensitive = true)` when copying sensitive content on Android to hide system clipboard previews where supported.
 
 Android clipboard and file-backed sharing use a `FileProvider` authority based on the consuming app id: `${applicationId}.toolkit-clipboard`.
 
