@@ -155,11 +155,10 @@ Android clipboard and file-backed sharing use a `FileProvider` authority based o
 
 ## Network
 
-Use `Toolkit.network()` to observe network connectivity and network type changes.
+Use `Toolkit.network()` to observe default network connectivity and transport changes.
 
 ```kotlin
 val monitor = Toolkit.network()
-monitor.startMonitoring()
 
 scope.launch {
   monitor.observeNetworkStatus().collect { status ->
@@ -171,14 +170,12 @@ scope.launch {
 
 val status = monitor.getCurrentNetworkStatus()
 println(status.isConnected)
-println(status.type)
+println(status.transports)
 
-val isWifi = status.type == NetworkType.WIFI
-
-monitor.stopMonitoring()
+val isWifi = NetworkTransport.WIFI in status.transports
 ```
 
-Android declares `ACCESS_NETWORK_STATE` and `ACCESS_WIFI_STATE` for this feature.
+Android declares `ACCESS_NETWORK_STATE` for this feature.
 
 ## Keyboard
 
@@ -399,7 +396,6 @@ Prefer platform-specific source sets for larger behavior differences.
 The Android artifact declares the permissions required by toolkit features:
 
 - `ACCESS_NETWORK_STATE`
-- `ACCESS_WIFI_STATE`
 
 Clipboard and share helpers use a `FileProvider` authority based on the consuming app id:
 `${applicationId}.toolkit-clipboard`.

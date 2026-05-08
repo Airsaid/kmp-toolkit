@@ -67,7 +67,9 @@ val device = Toolkit.deviceInfo()
 println(device.systemVersion)
 
 val networkMonitor = Toolkit.network()
-networkMonitor.startMonitoring()
+scope.launch {
+  println(networkMonitor.getCurrentNetworkStatus().isConnected)
+}
 
 val clipboard = Toolkit.clipboard()
 scope.launch {
@@ -84,7 +86,6 @@ haptics.perform(HapticFeedbackType.SUCCESS)
 Android 产物声明了 toolkit 功能所需权限：
 
 - `ACCESS_NETWORK_STATE`
-- `ACCESS_WIFI_STATE`
 
 剪贴板和分享能力使用基于接入方应用 id 的 `FileProvider` authority：
 `${applicationId}.toolkit-clipboard`。

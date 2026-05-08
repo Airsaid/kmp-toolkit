@@ -67,7 +67,9 @@ val device = Toolkit.deviceInfo()
 println(device.systemVersion)
 
 val networkMonitor = Toolkit.network()
-networkMonitor.startMonitoring()
+scope.launch {
+  println(networkMonitor.getCurrentNetworkStatus().isConnected)
+}
 
 val clipboard = Toolkit.clipboard()
 scope.launch {
@@ -84,7 +86,6 @@ Detailed usage guide: [toolkit/README.md](toolkit/README.md)
 The Android artifact declares the permissions needed by toolkit features:
 
 - `ACCESS_NETWORK_STATE`
-- `ACCESS_WIFI_STATE`
 
 Clipboard and share helpers use a `FileProvider` authority based on the consuming app id:
 `${applicationId}.toolkit-clipboard`.

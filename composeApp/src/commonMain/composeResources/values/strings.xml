@@ -59,9 +59,8 @@ haptics.perform(HapticFeedbackType.WARNING)
 haptics.perform(HapticFeedbackType.ERROR)
 haptics.perform(HapticFeedbackType.SELECTION)]]></string>
   <string name="demo_network_title">Network status monitor</string>
-  <string name="demo_network_description">Observe network connectivity and connection type changes.</string>
+  <string name="demo_network_description">Observe default network connectivity and transport changes.</string>
   <string name="demo_network_code"><![CDATA[val monitor = Toolkit.network()
-monitor.startMonitoring()
 scope.launch {
   monitor.observeNetworkStatus().collect { status ->
     if (!status.isConnected) {
@@ -71,9 +70,8 @@ scope.launch {
 }
 val status = monitor.getCurrentNetworkStatus()
 println(status.isConnected)
-println(status.type)
-val isWifi = status.type == NetworkType.WIFI
-monitor.stopMonitoring()]]></string>
+println(status.transports)
+val isWifi = NetworkTransport.WIFI in status.transports]]></string>
   <string name="demo_sensor_title">Sensor monitor</string>
   <string name="demo_sensor_description">Use SensorToolkit to observe accelerometer, gyroscope, device motion, and other sensors.</string>
   <string name="demo_sensor_code"><![CDATA[val sensors = Toolkit.sensors()

@@ -59,9 +59,8 @@ haptics.perform(HapticFeedbackType.WARNING)
 haptics.perform(HapticFeedbackType.ERROR)
 haptics.perform(HapticFeedbackType.SELECTION)]]></string>
   <string name="demo_network_title">网络状态监听</string>
-  <string name="demo_network_description">监听网络连接状态与类型变化。</string>
+  <string name="demo_network_description">监听默认网络连接状态与传输类型变化。</string>
   <string name="demo_network_code"><![CDATA[val monitor = Toolkit.network()
-monitor.startMonitoring()
 scope.launch {
   monitor.observeNetworkStatus().collect { status ->
     if (!status.isConnected) {
@@ -71,9 +70,8 @@ scope.launch {
 }
 val status = monitor.getCurrentNetworkStatus()
 println(status.isConnected)
-println(status.type)
-val isWifi = status.type == NetworkType.WIFI
-monitor.stopMonitoring()]]></string>
+println(status.transports)
+val isWifi = NetworkTransport.WIFI in status.transports]]></string>
   <string name="demo_sensor_title">传感器监听</string>
   <string name="demo_sensor_description">使用 SensorToolkit 监听加速度计、陀螺仪与设备姿态等传感器。</string>
   <string name="demo_sensor_code"><![CDATA[val sensors = Toolkit.sensors()

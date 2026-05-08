@@ -155,11 +155,10 @@ Android 剪贴板与文件类分享会使用基于接入方应用 id 的 `FilePr
 
 ## 网络
 
-使用 `Toolkit.network()` 监听网络连接状态与网络类型变化。
+使用 `Toolkit.network()` 监听默认网络连接状态与传输类型变化。
 
 ```kotlin
 val monitor = Toolkit.network()
-monitor.startMonitoring()
 
 scope.launch {
   monitor.observeNetworkStatus().collect { status ->
@@ -171,14 +170,12 @@ scope.launch {
 
 val status = monitor.getCurrentNetworkStatus()
 println(status.isConnected)
-println(status.type)
+println(status.transports)
 
-val isWifi = status.type == NetworkType.WIFI
-
-monitor.stopMonitoring()
+val isWifi = NetworkTransport.WIFI in status.transports
 ```
 
-Android 会为该能力声明 `ACCESS_NETWORK_STATE` 与 `ACCESS_WIFI_STATE`。
+Android 会为该能力声明 `ACCESS_NETWORK_STATE`。
 
 ## 键盘
 
@@ -396,7 +393,6 @@ if (platform.isIos()) {
 Android 产物声明了 toolkit 功能所需权限：
 
 - `ACCESS_NETWORK_STATE`
-- `ACCESS_WIFI_STATE`
 
 剪贴板与分享能力使用基于接入方应用 id 的 `FileProvider` authority：
 `${applicationId}.toolkit-clipboard`。

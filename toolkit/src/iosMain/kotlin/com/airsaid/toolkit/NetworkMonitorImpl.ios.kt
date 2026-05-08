@@ -2,7 +2,6 @@ package com.airsaid.toolkit
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
@@ -18,7 +17,6 @@ import platform.Network.nw_path_monitor_set_update_handler
 import platform.Network.nw_path_monitor_start
 import platform.Network.nw_path_monitor_t
 import platform.Network.nw_path_monitor_update_handler_t
-import platform.Network.nw_path_status_satisfiable
 import platform.Network.nw_path_status_satisfied
 import platform.Network.nw_path_t
 import platform.Network.nw_path_uses_interface_type
@@ -41,7 +39,6 @@ internal class NetworkMonitorImpl : NetworkMonitor {
     MutableStateFlow(
       NetworkStatus(
         isConnected = false,
-        type = NetworkType.NONE,
       )
     )
 
@@ -51,13 +48,9 @@ internal class NetworkMonitorImpl : NetworkMonitor {
   /** Tracks whether monitoring is currently active. */
   private var isMonitoring = false
 
-  /** Stores the current network path for synchronous access. */
-  private var currentPath: nw_path_t? = null
-
   /** Tracks the number of active observers. */
   private var observerCount = 0
   private var isManuallyStarted = false
-  private var isExplicitlyStopped = false
 
   /**
    * Observes network status changes and emits [NetworkStatus] updates as a [Flow].
@@ -68,21 +61,12 @@ internal class NetworkMonitorImpl : NetworkMonitor {
     statusState
       .onStart { onObserverStart() }
       .onCompletion { onObserverStop() }
-      .conflate()
       .distinctUntilChanged()
 
   /**
    * Returns the current [NetworkStatus] synchronously.
    */
   override suspend fun getCurrentNetworkStatus(): NetworkStatus {
-    // If monitoring is active and we have a current path, use it
-    if (isMonitoring) {
-      currentPath?.let { path ->
-        return getNetworkStatus(path)
-      }
-    }
-
-    // Otherwise, get current status with a temporary monitor
     return suspendCancellableCoroutine { continuation ->
       val tempMonitor = nw_path_monitor_create()
       val tempQueue = dispatch_queue_create("com.airsaid.toolkit.network.temp", null)
@@ -92,7 +76,7 @@ internal class NetworkMonitorImpl : NetworkMonitor {
         if (!resumed) {
           resumed = true
           val status = path?.let { getNetworkStatus(it) }
-            ?: NetworkStatus(isConnected = false, type = NetworkType.NONE)
+            ?: NetworkStatus(isConnected = false)
 
           nw_path_monitor_cancel(tempMonitor)
           continuation.resume(status)
@@ -114,9 +98,11 @@ internal class NetworkMonitorImpl : NetworkMonitor {
   /**
    * Starts monitoring network status if not already started.
    */
+  @Deprecated(
+    message = "Network monitoring now starts automatically while observeNetworkStatus() is collected.",
+  )
   override fun startMonitoring() {
     withLock {
-      isExplicitlyStopped = false
       isManuallyStarted = true
       if (!isMonitoring) {
         startMonitoringInternal()
@@ -135,9 +121,8 @@ internal class NetworkMonitorImpl : NetworkMonitor {
 
     monitor = newMonitor
     val updateHandler: nw_path_monitor_update_handler_t = { path ->
-      currentPath = path
       val status = path?.let { getNetworkStatus(it) }
-        ?: NetworkStatus(isConnected = false, type = NetworkType.NONE)
+        ?: NetworkStatus(isConnected = false)
       statusState.value = status
     }
 
@@ -150,11 +135,13 @@ internal class NetworkMonitorImpl : NetworkMonitor {
   /**
    * Stops monitoring network status if currently active.
    */
+  @Deprecated(
+    message = "Network monitoring now stops automatically when observeNetworkStatus() has no collectors.",
+  )
   override fun stopMonitoring() {
     withLock {
       isManuallyStarted = false
-      isExplicitlyStopped = true
-      if (isMonitoring) {
+      if (observerCount == 0 && isMonitoring) {
         stopMonitoringInternal()
       }
     }
@@ -168,7 +155,6 @@ internal class NetworkMonitorImpl : NetworkMonitor {
     nw_path_monitor_set_update_handler(currentMonitor, null)
     nw_path_monitor_cancel(currentMonitor)
     monitor = null
-    currentPath = null
     isMonitoring = false
   }
 
@@ -181,36 +167,41 @@ internal class NetworkMonitorImpl : NetworkMonitor {
   private fun getNetworkStatus(path: nw_path_t): NetworkStatus {
     return try {
       val status = nw_path_get_status(path)
-      val isConnected = status == nw_path_status_satisfied ||
-          status == nw_path_status_satisfiable
+      val isConnected = status == nw_path_status_satisfied
 
       if (!isConnected) {
         return NetworkStatus(
           isConnected = false,
-          type = NetworkType.NONE,
         )
       }
 
-      val type = when {
-        nw_path_uses_interface_type(path, nw_interface_type_wifi) -> NetworkType.WIFI
-        nw_path_uses_interface_type(path, nw_interface_type_cellular) -> NetworkType.CELLULAR
-        nw_path_uses_interface_type(path, nw_interface_type_wired) -> NetworkType.ETHERNET
-        else -> NetworkType.UNKNOWN
+      val transports = mutableSetOf<NetworkTransport>()
+      if (nw_path_uses_interface_type(path, nw_interface_type_wifi)) {
+        transports += NetworkTransport.WIFI
+      }
+      if (nw_path_uses_interface_type(path, nw_interface_type_cellular)) {
+        transports += NetworkTransport.CELLULAR
+      }
+      if (nw_path_uses_interface_type(path, nw_interface_type_wired)) {
+        transports += NetworkTransport.ETHERNET
+      }
+      if (transports.isEmpty()) {
+        transports += NetworkTransport.UNKNOWN
       }
 
       NetworkStatus(
         isConnected = isConnected,
-        type = type,
+        transports = transports,
       )
     } catch (e: Exception) {
-      NetworkStatus(isConnected = false, type = NetworkType.NONE)
+      NetworkStatus(isConnected = false)
     }
   }
 
   private fun onObserverStart() {
     withLock {
       observerCount++
-      if (!isExplicitlyStopped && !isMonitoring) {
+      if (!isMonitoring) {
         startMonitoringInternal()
       }
     }

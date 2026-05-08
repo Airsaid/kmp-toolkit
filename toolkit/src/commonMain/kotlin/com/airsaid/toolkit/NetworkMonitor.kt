@@ -26,18 +26,24 @@ interface NetworkMonitor {
   /**
    * Starts monitoring the network status.
    */
+  @Deprecated(
+    message = "Network monitoring now starts automatically while observeNetworkStatus() is collected.",
+  )
   fun startMonitoring()
 
   /**
    * Stops monitoring the network status.
    */
+  @Deprecated(
+    message = "Network monitoring now stops automatically when observeNetworkStatus() has no collectors.",
+  )
   fun stopMonitoring()
 }
 
 /**
- * Represents different types of network connections.
+ * Represents network transports used by the current default network.
  */
-enum class NetworkType {
+enum class NetworkTransport {
   /** Connected via Wi-Fi network. */
   WIFI,
 
@@ -51,23 +57,40 @@ enum class NetworkType {
   VPN,
 
   /** Network type is unknown or cannot be determined. */
-  UNKNOWN,
-
-  /** No active network connection. */
-  NONE
+  UNKNOWN
 }
 
 /**
  * Represents the current network status of the device.
  *
- * @property isConnected Whether the device is connected to a network.
- * @property type The type of the active network connection. Defaults to [NetworkType.UNKNOWN].
+ * @property isConnected Whether the current default network can reach the internet.
+ * @property transports The transports used by the current default network.
  */
 data class NetworkStatus(
 
-  /** Whether the device has an active network connection. */
+  /** Whether the current default network can reach the internet. */
   val isConnected: Boolean,
 
-  /** The type of network connection currently in use. */
-  val type: NetworkType = NetworkType.UNKNOWN
-)
+  /** The transports used by the current default network. */
+  val transports: Set<NetworkTransport> = emptySet(),
+) {
+
+  /**
+   * The transport most useful for compact UI display.
+   */
+  val primaryTransport: NetworkTransport?
+    get() = resolvePrimaryNetworkTransport(transports)
+}
+
+internal fun resolvePrimaryNetworkTransport(
+  transports: Set<NetworkTransport>,
+): NetworkTransport? {
+  return when {
+    NetworkTransport.VPN in transports -> NetworkTransport.VPN
+    NetworkTransport.WIFI in transports -> NetworkTransport.WIFI
+    NetworkTransport.CELLULAR in transports -> NetworkTransport.CELLULAR
+    NetworkTransport.ETHERNET in transports -> NetworkTransport.ETHERNET
+    NetworkTransport.UNKNOWN in transports -> NetworkTransport.UNKNOWN
+    else -> null
+  }
+}

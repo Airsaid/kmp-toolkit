@@ -4,10 +4,8 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
@@ -30,7 +28,6 @@ internal class NetworkMonitorImpl(
     MutableStateFlow(
       NetworkStatus(
         isConnected = false,
-        type = NetworkType.NONE,
       )
     )
 
@@ -39,7 +36,6 @@ internal class NetworkMonitorImpl(
   private var networkCallback: ConnectivityManager.NetworkCallback? = null
   private var isMonitoring = false
   private var isManuallyStarted = false
-  private var isExplicitlyStopped = false
   private var observerCount = 0
 
   /**
@@ -52,7 +48,6 @@ internal class NetworkMonitorImpl(
     statusState
       .onStart { onObserverStart() }
       .onCompletion { onObserverStop() }
-      .conflate()
       .distinctUntilChanged()
 
   /**
@@ -67,9 +62,11 @@ internal class NetworkMonitorImpl(
    *
    * On Android, monitoring automatically begins when [observeNetworkStatus] is collected.
    */
+  @Deprecated(
+    message = "Network monitoring now starts automatically while observeNetworkStatus() is collected.",
+  )
   override fun startMonitoring() {
     synchronized(lock) {
-      isExplicitlyStopped = false
       isManuallyStarted = true
       if (!isMonitoring) {
         startMonitoringInternal()
@@ -80,11 +77,13 @@ internal class NetworkMonitorImpl(
   /**
    * Stops monitoring network status by unregistering the callback.
    */
+  @Deprecated(
+    message = "Network monitoring now stops automatically when observeNetworkStatus() has no collectors.",
+  )
   override fun stopMonitoring() {
     synchronized(lock) {
       isManuallyStarted = false
-      isExplicitlyStopped = true
-      if (isMonitoring) {
+      if (observerCount == 0 && isMonitoring) {
         stopMonitoringInternal()
       }
     }
@@ -97,11 +96,14 @@ internal class NetworkMonitorImpl(
   private fun getNetworkStatus(): NetworkStatus {
     val network = connectivityManager.activeNetwork
     val capabilities = connectivityManager.getNetworkCapabilities(network)
+    return capabilities.toNetworkStatus()
+  }
 
+  private fun NetworkCapabilities?.toNetworkStatus(): NetworkStatus {
+    val capabilities = this
     if (capabilities == null) {
       return NetworkStatus(
         isConnected = false,
-        type = NetworkType.NONE,
       )
     }
 
@@ -109,24 +111,33 @@ internal class NetworkMonitorImpl(
       capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
           capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 
-    val type = when {
-      capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> NetworkType.WIFI
-      capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> NetworkType.CELLULAR
-      capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> NetworkType.ETHERNET
-      capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> NetworkType.VPN
-      else -> NetworkType.UNKNOWN
+    val transports = mutableSetOf<NetworkTransport>()
+    if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+      transports += NetworkTransport.WIFI
+    }
+    if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+      transports += NetworkTransport.CELLULAR
+    }
+    if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+      transports += NetworkTransport.ETHERNET
+    }
+    if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+      transports += NetworkTransport.VPN
+    }
+    if (transports.isEmpty()) {
+      transports += NetworkTransport.UNKNOWN
     }
 
     return NetworkStatus(
       isConnected = isConnected,
-      type = if (isConnected) type else NetworkType.NONE,
+      transports = transports,
     )
   }
 
   private fun onObserverStart() {
     synchronized(lock) {
       observerCount++
-      if (!isExplicitlyStopped && !isMonitoring) {
+      if (!isMonitoring) {
         startMonitoringInternal()
       }
     }
@@ -146,28 +157,22 @@ internal class NetworkMonitorImpl(
 
     val callback = object : ConnectivityManager.NetworkCallback() {
       override fun onAvailable(network: Network) {
-        updateStatus()
       }
 
       override fun onLost(network: Network) {
-        updateStatus()
+        statusState.value = NetworkStatus(isConnected = false)
       }
 
       override fun onCapabilitiesChanged(
         network: Network,
         networkCapabilities: NetworkCapabilities,
       ) {
-        updateStatus()
+        updateStatus(networkCapabilities)
       }
     }
 
     networkCallback = callback
-
-    val request = NetworkRequest.Builder()
-      .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-      .build()
-
-    connectivityManager.registerNetworkCallback(request, callback)
+    connectivityManager.registerDefaultNetworkCallback(callback)
     updateStatus()
     isMonitoring = true
   }
@@ -181,5 +186,9 @@ internal class NetworkMonitorImpl(
 
   private fun updateStatus() {
     statusState.value = getNetworkStatus()
+  }
+
+  private fun updateStatus(capabilities: NetworkCapabilities?) {
+    statusState.value = capabilities.toNetworkStatus()
   }
 }

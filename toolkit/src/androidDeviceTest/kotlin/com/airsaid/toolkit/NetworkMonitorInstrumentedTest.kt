@@ -6,19 +6,21 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class NetworkMonitorInstrumentedTest {
+  @Suppress("DEPRECATION")
   @Test
   fun observeWithMultipleCollectors() = runBlocking {
     val appContext = InstrumentationRegistry.getInstrumentation().targetContext
     Toolkit.initialize(appContext)
 
     val monitor = Toolkit.network()
-    monitor.startMonitoring()
+    monitor.stopMonitoring()
 
     val firstCollector = async {
       monitor.observeNetworkStatus().first()
@@ -34,7 +36,24 @@ class NetworkMonitorInstrumentedTest {
     assertNotNull(status2)
 
     monitor.stopMonitoring()
-    monitor.startMonitoring()
+  }
+
+  @Suppress("DEPRECATION")
+  @Test
+  fun observeStartsAgainAfterStopMonitoring() = runBlocking {
+    val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+    Toolkit.initialize(appContext)
+
+    val monitor = Toolkit.network()
     monitor.stopMonitoring()
+
+    val observedStatus = withTimeout(5_000) {
+      monitor.observeNetworkStatus().first()
+    }
+    val currentStatus = monitor.getCurrentNetworkStatus()
+
+    assertNotNull(observedStatus)
+    assertEquals(currentStatus.isConnected, observedStatus.isConnected)
+    assertEquals(currentStatus.primaryTransport, observedStatus.primaryTransport)
   }
 }
