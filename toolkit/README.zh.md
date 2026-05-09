@@ -80,11 +80,10 @@ println(info.packageName)
 println(info.appName)
 println(info.versionName)
 println(info.buildNumber)
-println(info.buildType)
-println(info.buildTime)
 ```
 
 Android 上 `packageName` 是 application id；iOS 上是 bundle identifier。
+当平台元数据不可用时，`appName`、`versionName` 与 `buildNumber` 会返回 `null`。
 
 ## 设备信息
 

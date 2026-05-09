@@ -16,7 +16,6 @@ kotlinStdlib = "2.2.21"
 runner = "1.7.0"
 core = "1.7.0"
 kotlinx-coroutines = "1.9.0"
-buildkonfig = "0.17.1"
 vanniktech-maven-publish = "0.35.0"
 dokka = "2.1.0"
 junit = "4.13.2"
@@ -45,6 +44,5 @@ composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-mu
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }
 vanniktechMavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech-maven-publish" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

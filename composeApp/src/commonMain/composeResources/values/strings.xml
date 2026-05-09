@@ -209,8 +209,6 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="app_info_app_name">App name</string>
   <string name="app_info_version_name">Version name</string>
   <string name="app_info_build_number">Build number</string>
-  <string name="app_info_build_type">Build type</string>
-  <string name="app_info_build_time">Build time</string>
 
   <string name="clipboard_input_label">Content to write</string>
   <string name="clipboard_default_text">Toolkit Demo</string>

@@ -209,8 +209,6 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="app_info_app_name">App 名称</string>
   <string name="app_info_version_name">版本名</string>
   <string name="app_info_build_number">构建号</string>
-  <string name="app_info_build_type">构建类型</string>
-  <string name="app_info_build_time">构建时间</string>
 
   <string name="clipboard_input_label">写入内容</string>
   <string name="clipboard_default_text">工具包示例</string>

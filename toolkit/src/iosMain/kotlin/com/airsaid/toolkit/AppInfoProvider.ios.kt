@@ -13,20 +13,17 @@ internal actual object AppInfoProvider {
   actual fun getAppInfo(): AppInfo {
     val bundle = NSBundle.mainBundle
     val versionName = bundle.objectForInfoDictionaryKey("CFBundleShortVersionString")
-      as? String ?: ""
+      as? String
     val buildNumber = bundle.objectForInfoDictionaryKey("CFBundleVersion")
-      as? String ?: ""
+      as? String
     val appName = (bundle.objectForInfoDictionaryKey("CFBundleDisplayName") as? String)
       ?: (bundle.objectForInfoDictionaryKey("CFBundleName") as? String)
-      ?: ""
     val packageName = bundle.bundleIdentifier ?: ""
     return AppInfo(
       packageName = packageName,
-      appName = appName,
-      versionName = versionName,
-      buildNumber = buildNumber,
-      buildType = BuildKonfig.BUILD_TYPE,
-      buildTime = BuildKonfig.BUILD_TIME,
+      appName = appName?.takeUnless { it.isBlank() },
+      versionName = versionName?.takeUnless { it.isBlank() },
+      buildNumber = buildNumber?.takeUnless { it.isBlank() },
     )
   }
 }
