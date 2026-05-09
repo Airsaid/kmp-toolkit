@@ -384,16 +384,16 @@ if (file != null) {
 
 ## 平台判断
 
-使用 `Toolkit.currentPlatform()` 处理必须保留在 common 代码中的小型平台分支。
+使用 `Toolkit.platform` 处理必须保留在 common 代码中的小型平台分支。
 
 ```kotlin
-val platform = Toolkit.currentPlatform()
+val platform = Toolkit.platform
 
-if (platform.isAndroid()) {
+if (platform.isAndroid) {
   // Android 侧共享代码分支。
 }
 
-if (platform.isIos()) {
+if (platform.isIos) {
   // iOS 侧共享代码分支。
 }
 ```

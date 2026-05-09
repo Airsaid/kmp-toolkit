@@ -172,13 +172,13 @@ println(device.locale.current.languageTag)
 println(device.locale.preferred)]]></string>
   <string name="demo_platform_title">Platform detection</string>
   <string name="demo_platform_description">Detect the current platform from common code.</string>
-  <string name="demo_platform_code"><![CDATA[val platform = Toolkit.currentPlatform()
+  <string name="demo_platform_code"><![CDATA[val platform = Toolkit.platform
 
-if (platform.isAndroid()) {
+if (platform.isAndroid) {
 
 }
 
-if (platform.isIos()) {
+if (platform.isIos) {
 
 }]]></string>
   <string name="demo_keyboard_title">Keyboard status monitor</string>

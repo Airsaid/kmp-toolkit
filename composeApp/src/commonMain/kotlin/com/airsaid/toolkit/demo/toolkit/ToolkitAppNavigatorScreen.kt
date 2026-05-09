@@ -33,7 +33,7 @@ fun ToolkitAppNavigatorScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.AppNavigatorRoute } }
   val navigator = remember { Toolkit.navigator() }
   val appStoreId = remember {
-    if (Toolkit.currentPlatform().isIos()) {
+    if (Toolkit.platform.isIos) {
       "123456789"
     } else {
       "com.example.app"

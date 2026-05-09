@@ -387,16 +387,16 @@ Use `withScopedAccess { ... }` for iOS security-scoped file access when you need
 
 ## Platform
 
-Use `Toolkit.currentPlatform()` for small platform branches that must stay in common code.
+Use `Toolkit.platform` for small platform branches that must stay in common code.
 
 ```kotlin
-val platform = Toolkit.currentPlatform()
+val platform = Toolkit.platform
 
-if (platform.isAndroid()) {
+if (platform.isAndroid) {
   // Android-specific shared-code branch.
 }
 
-if (platform.isIos()) {
+if (platform.isIos) {
   // iOS-specific shared-code branch.
 }
 ```

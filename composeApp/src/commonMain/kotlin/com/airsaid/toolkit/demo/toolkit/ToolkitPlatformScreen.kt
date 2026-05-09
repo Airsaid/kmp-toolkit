@@ -37,13 +37,13 @@ fun ToolkitPlatformScreen(modifier: Modifier = Modifier) {
       verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
       Button(onClick = {
-        platform = Toolkit.currentPlatform()
+        platform = Toolkit.platform
       }) {
         Text(text = stringResource(Res.string.action_read_platform_type))
       }
     }
-    StatusText(value = platform?.let { currentPlatform ->
-      stringResource(Res.string.platform_current_format, currentPlatform.displayName())
+    StatusText(value = platform?.let { platformType ->
+      stringResource(Res.string.platform_current_format, platformType.displayName())
     })
   }
 }
