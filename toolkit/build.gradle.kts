@@ -1,14 +1,11 @@
-import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
-import java.time.Instant
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
   alias(libs.plugins.kotlinMultiplatform)
   alias(libs.plugins.androidKotlinMultiplatformLibrary)
   alias(libs.plugins.androidLint)
-  alias(libs.plugins.buildkonfig)
   alias(libs.plugins.vanniktechMavenPublish)
   alias(libs.plugins.dokka)
 }
@@ -78,20 +75,6 @@ kotlin {
         implementation(libs.androidx.testExt.junit)
       }
     }
-  }
-}
-
-val buildType = (providers.gradleProperty("buildType").orNull
-  ?: System.getenv("CONFIGURATION")
-  ?: "release").lowercase()
-val buildTime = providers.gradleProperty("buildTime").orNull ?: Instant.now().toString()
-
-buildkonfig {
-  packageName = "com.airsaid.toolkit"
-
-  defaultConfigs {
-    buildConfigField(STRING, "BUILD_TYPE", buildType)
-    buildConfigField(STRING, "BUILD_TIME", buildTime)
   }
 }
 

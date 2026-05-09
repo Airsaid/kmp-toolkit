@@ -20,8 +20,6 @@ import com.airsaid.toolkit.demo.resources.action_clear
 import com.airsaid.toolkit.demo.resources.action_read_app_info
 import com.airsaid.toolkit.demo.resources.app_info_app_name
 import com.airsaid.toolkit.demo.resources.app_info_build_number
-import com.airsaid.toolkit.demo.resources.app_info_build_time
-import com.airsaid.toolkit.demo.resources.app_info_build_type
 import com.airsaid.toolkit.demo.resources.app_info_package_name
 import com.airsaid.toolkit.demo.resources.app_info_version_name
 import org.jetbrains.compose.resources.stringResource
@@ -60,8 +58,6 @@ fun ToolkitAppInfoScreen(modifier: Modifier = Modifier) {
         appNameLabel = stringResource(Res.string.app_info_app_name),
         versionNameLabel = stringResource(Res.string.app_info_version_name),
         buildNumberLabel = stringResource(Res.string.app_info_build_number),
-        buildTypeLabel = stringResource(Res.string.app_info_build_type),
-        buildTimeLabel = stringResource(Res.string.app_info_build_time),
       )
     })
   }
@@ -73,18 +69,18 @@ private fun buildAppInfoText(
   appNameLabel: String,
   versionNameLabel: String,
   buildNumberLabel: String,
-  buildTypeLabel: String,
-  buildTimeLabel: String,
 ): String {
   val rows = listOf(
     packageNameLabel to info.packageName,
     appNameLabel to info.appName,
     versionNameLabel to info.versionName,
     buildNumberLabel to info.buildNumber,
-    buildTypeLabel to info.buildType,
-    buildTimeLabel to info.buildTime,
   )
   return rows.joinToString("\n") { (label, value) ->
-    "$label: ${value.ifBlank { "-" }}"
+    "$label: ${formatAppInfoValue(value)}"
   }
+}
+
+private fun formatAppInfoValue(value: String?): String {
+  return value?.takeUnless { it.isBlank() } ?: "-"
 }

@@ -77,11 +77,10 @@ println(info.packageName)
 println(info.appName)
 println(info.versionName)
 println(info.buildNumber)
-println(info.buildType)
-println(info.buildTime)
 ```
 
 On Android, `packageName` is the application id. On iOS, it is the bundle identifier.
+`appName`, `versionName`, and `buildNumber` are nullable when the platform metadata is unavailable.
 
 ## Device Info
 

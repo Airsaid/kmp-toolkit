@@ -1,7 +1,6 @@
 package com.airsaid.toolkit
 
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
 
@@ -36,7 +35,7 @@ internal actual object AppInfoProvider {
       @Suppress("DEPRECATION")
       packageManager.getPackageInfo(packageName, 0)
     }
-    val versionName = packageInfo.versionName.orEmpty()
+    val versionName = packageInfo.versionName?.takeUnless { it.isBlank() }
     val buildNumber = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
       packageInfo.longVersionCode.toString()
     } else {
@@ -51,19 +50,14 @@ internal actual object AppInfoProvider {
         packageManager.getApplicationInfo(packageName, 0)
       }
     }
-    val appName = packageManager.getApplicationLabel(applicationInfo).toString()
-    val buildType = if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-      "debug"
-    } else {
-      "release"
-    }
+    val appName = packageManager.getApplicationLabel(applicationInfo)
+      .toString()
+      .takeUnless { it.isBlank() }
     return AppInfo(
       packageName = packageName,
       appName = appName,
       versionName = versionName,
       buildNumber = buildNumber,
-      buildType = buildType,
-      buildTime = BuildKonfig.BUILD_TIME,
     )
   }
 }
