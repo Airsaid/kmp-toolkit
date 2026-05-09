@@ -5,7 +5,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-@Suppress("DEPRECATION")
 class AppLifecycleStateTrackerTest {
 
   @Test
@@ -17,15 +16,10 @@ class AppLifecycleStateTrackerTest {
 
     assertTrue(status.isInForeground)
     assertTrue(status.isVisible)
-    assertTrue(status.isFirstLaunch)
     assertEquals(1, status.coldStartCount)
     assertEquals(0, status.hotStartCount)
     assertEquals(AppStartType.COLD, status.lastStartType)
     assertEquals(AppStartType.COLD, update.startType)
-
-    tracker.clearFirstLaunchFlag()
-
-    assertFalse(tracker.currentStatus.isFirstLaunch)
   }
 
   @Test
@@ -33,12 +27,10 @@ class AppLifecycleStateTrackerTest {
     val tracker = AppLifecycleStateTracker()
 
     tracker.update(isInForeground = true, isVisible = true)
-    tracker.clearFirstLaunchFlag()
     tracker.update(isInForeground = false, isVisible = false)
     val update = tracker.update(isInForeground = true, isVisible = true)
     val status = update.status
 
-    assertFalse(status.isFirstLaunch)
     assertEquals(1, status.coldStartCount)
     assertEquals(1, status.hotStartCount)
     assertEquals(AppStartType.HOT, status.lastStartType)
@@ -50,7 +42,6 @@ class AppLifecycleStateTrackerTest {
     val tracker = AppLifecycleStateTracker()
 
     tracker.update(isInForeground = true, isVisible = true)
-    tracker.clearFirstLaunchFlag()
     val update = tracker.update(isInForeground = true, isVisible = false)
     val status = update.status
 

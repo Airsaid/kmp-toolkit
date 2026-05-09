@@ -24,24 +24,6 @@ interface AppLifecycleMonitor {
    * Retrieves the current lifecycle status.
    */
   suspend fun getCurrentStatus(): AppLifecycleStatus
-
-  /**
-   * Starts monitoring lifecycle changes.
-   */
-  @Deprecated(
-    message = "Lifecycle monitoring now starts automatically while observeAppLifecycle() or " +
-      "observeAppStartEvents() is collected.",
-  )
-  fun startMonitoring()
-
-  /**
-   * Stops monitoring lifecycle changes.
-   */
-  @Deprecated(
-    message = "Lifecycle monitoring now stops automatically when observeAppLifecycle() and " +
-      "observeAppStartEvents() have no collectors.",
-  )
-  fun stopMonitoring()
 }
 
 /**
@@ -57,8 +39,6 @@ enum class AppStartType {
  *
  * @property isInForeground True when the app is interactive.
  * @property isVisible True when the app is visible to the user.
- * @property isFirstLaunch Legacy transient flag for the first foreground entry.
- * Prefer [AppLifecycleMonitor.observeAppStartEvents] for one-shot launch handling.
  * @property coldStartCount Number of cold starts in this process.
  * @property hotStartCount Number of hot starts in this process.
  * @property lastStartType The most recent start type, null before any start.
@@ -66,10 +46,6 @@ enum class AppStartType {
 data class AppLifecycleStatus(
   val isInForeground: Boolean,
   val isVisible: Boolean,
-  @Deprecated(
-    message = "Use observeAppStartEvents() for one-shot launch handling.",
-  )
-  val isFirstLaunch: Boolean,
   val coldStartCount: Int,
   val hotStartCount: Int,
   val lastStartType: AppStartType?,
@@ -86,12 +62,10 @@ internal expect object AppLifecycleMonitorFactory {
   fun create(): AppLifecycleMonitor
 }
 
-@Suppress("DEPRECATION")
 internal class AppLifecycleStateTracker(
   initialStatus: AppLifecycleStatus = AppLifecycleStatus(
     isInForeground = false,
     isVisible = false,
-    isFirstLaunch = false,
     coldStartCount = 0,
     hotStartCount = 0,
     lastStartType = null,
@@ -113,7 +87,6 @@ internal class AppLifecycleStateTracker(
     var coldStarts = status.coldStartCount
     var hotStarts = status.hotStartCount
     var lastStartType = status.lastStartType
-    var isFirstLaunch = false
     var startType: AppStartType? = null
 
     if (!wasForeground && isInForeground) {
@@ -125,13 +98,11 @@ internal class AppLifecycleStateTracker(
       }
       lastStartType = startType
       hasStarted = true
-      isFirstLaunch = startType == AppStartType.COLD && coldStarts == 1
     }
 
     status = AppLifecycleStatus(
       isInForeground = isInForeground,
       isVisible = isVisible,
-      isFirstLaunch = isFirstLaunch,
       coldStartCount = coldStarts,
       hotStartCount = hotStarts,
       lastStartType = lastStartType,
@@ -140,11 +111,6 @@ internal class AppLifecycleStateTracker(
       status = status,
       startType = startType,
     )
-  }
-
-  fun clearFirstLaunchFlag() {
-    if (!status.isFirstLaunch) return
-    status = status.copy(isFirstLaunch = false)
   }
 }
 

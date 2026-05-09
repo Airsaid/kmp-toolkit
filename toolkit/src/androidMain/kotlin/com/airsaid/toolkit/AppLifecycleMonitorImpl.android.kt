@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.onStart
 /**
  * Android implementation of [AppLifecycleMonitor].
  */
-@Suppress("DEPRECATION")
 internal class AppLifecycleMonitorImpl : AppLifecycleMonitor {
 
   private val tracker = AppLifecycleStateTracker()
@@ -25,7 +24,6 @@ internal class AppLifecycleMonitorImpl : AppLifecycleMonitor {
   private val lock = Any()
 
   private var isMonitoring = false
-  private var isManuallyStarted = false
   private var isSyncingInitialState = false
   private var observerCount = 0
 
@@ -66,32 +64,6 @@ internal class AppLifecycleMonitorImpl : AppLifecycleMonitor {
     }
   }
 
-  @Deprecated(
-    message = "Lifecycle monitoring now starts automatically while observeAppLifecycle() or " +
-      "observeAppStartEvents() is collected.",
-  )
-  override fun startMonitoring() {
-    synchronized(lock) {
-      isManuallyStarted = true
-      if (!isMonitoring) {
-        startMonitoringInternal()
-      }
-    }
-  }
-
-  @Deprecated(
-    message = "Lifecycle monitoring now stops automatically when observeAppLifecycle() and " +
-      "observeAppStartEvents() have no collectors.",
-  )
-  override fun stopMonitoring() {
-    synchronized(lock) {
-      isManuallyStarted = false
-      if (observerCount == 0 && isMonitoring) {
-        stopMonitoringInternal()
-      }
-    }
-  }
-
   private fun onObserverStart() {
     synchronized(lock) {
       observerCount += 1
@@ -104,7 +76,7 @@ internal class AppLifecycleMonitorImpl : AppLifecycleMonitor {
   private fun onObserverStop() {
     synchronized(lock) {
       observerCount = (observerCount - 1).coerceAtLeast(0)
-      if (observerCount == 0 && !isManuallyStarted && isMonitoring) {
+      if (observerCount == 0 && isMonitoring) {
         stopMonitoringInternal()
       }
     }
@@ -163,10 +135,6 @@ internal class AppLifecycleMonitorImpl : AppLifecycleMonitor {
     statusState.value = update.status
     if (emitStartEvent) {
       update.startType?.let { startEvents.tryEmit(it) }
-    }
-    if (update.status.isFirstLaunch) {
-      tracker.clearFirstLaunchFlag()
-      statusState.value = tracker.currentStatus
     }
   }
 
