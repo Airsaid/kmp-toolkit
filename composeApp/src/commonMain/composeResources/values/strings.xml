@@ -84,6 +84,7 @@ if (sensors.isAvailable(SensorType.ACCELEROMETER).isAvailable) {
       type = SensorType.ACCELEROMETER,
       options = SensorOptions(
         samplingRateHz = 50,
+        maxReportLatencyMillis = 200,
       ),
     ).collect { event ->
       val x = event.values[0]

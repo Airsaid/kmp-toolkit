@@ -256,6 +256,7 @@ if (availability.isAvailable) {
       type = SensorType.ACCELEROMETER,
       options = SensorOptions(
         samplingRateHz = 50,
+        maxReportLatencyMillis = 200,
       ),
     ).collect { event ->
       val x = event.values[0]
@@ -267,11 +268,9 @@ if (availability.isAvailable) {
 
 val snapshot = sensors.getSnapshot(SensorType.GYROSCOPE)
 val gyroValues = snapshot?.values
-
-sensors.stop(SensorType.ACCELEROMETER)
 ```
 
-The shared model includes many sensor types. Platform availability varies; check `isAvailable(...)` before observing. iOS focuses on accelerometer, gyroscope, magnetometer, device motion, and proximity support.
+Cancel the collecting coroutine when you no longer need updates. The shared model includes many sensor types. Platform availability varies; check `isAvailable(...)` before observing. When `requiredPermission` is set, request that platform permission before observing. iOS focuses on accelerometer, gyroscope, magnetometer, device motion, and proximity support.
 
 ## App Navigation
 

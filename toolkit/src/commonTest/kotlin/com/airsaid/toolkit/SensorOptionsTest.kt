@@ -2,7 +2,7 @@ package com.airsaid.toolkit
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class SensorOptionsTest {
@@ -13,6 +13,23 @@ class SensorOptionsTest {
 
     assertNull(options.samplingRateHz)
     assertEquals(SensorDelay.NORMAL, options.delay)
-    assertFalse(options.batchEnabled)
+    assertEquals(0L, options.maxReportLatencyMillis)
+  }
+
+  @Test
+  fun shouldRejectInvalidSamplingRate() {
+    assertFailsWith<IllegalArgumentException> {
+      SensorOptions(samplingRateHz = 0)
+    }
+    assertFailsWith<IllegalArgumentException> {
+      SensorOptions(samplingRateHz = -1)
+    }
+  }
+
+  @Test
+  fun shouldRejectInvalidReportLatency() {
+    assertFailsWith<IllegalArgumentException> {
+      SensorOptions(maxReportLatencyMillis = -1)
+    }
   }
 }

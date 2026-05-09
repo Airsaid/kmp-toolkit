@@ -1,18 +1,21 @@
 package com.airsaid.toolkit
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.hardware.TriggerEvent
 import android.hardware.TriggerEventListener
+import android.os.Build
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flow
 
 /**
  * Android implementation of [SensorToolkit].
@@ -21,40 +24,59 @@ internal class SensorToolkitImpl(
   context: Context,
 ) : SensorToolkit {
 
-  private val sensorManager =
-    context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+  private val applicationContext = context.applicationContext ?: context
 
+  private val sensorManager =
+    applicationContext.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+
+  private val streamLock = Any()
   private val streams = mutableMapOf<SensorType, SensorStream>()
 
   override fun isAvailable(type: SensorType): SensorAvailability {
-    return if (resolveSensor(type) != null) {
-      SensorAvailability(isAvailable = true)
-    } else {
-      SensorAvailability(
+    if (resolveSensor(type) == null) {
+      return SensorAvailability(
         isAvailable = false,
         reason = "Sensor not available on this device.",
       )
     }
+
+    val requiredPermission = type.requiredAndroidPermission()
+    if (
+      requiredPermission != null &&
+      applicationContext.checkSelfPermission(requiredPermission) !=
+      PackageManager.PERMISSION_GRANTED
+    ) {
+      return SensorAvailability(
+        isAvailable = false,
+        reason = "Missing required permission.",
+        requiredPermission = requiredPermission,
+      )
+    }
+
+    return SensorAvailability(isAvailable = true)
   }
 
   override fun observe(
     type: SensorType,
     options: SensorOptions,
   ): Flow<SensorEvent> {
+    if (!isAvailable(type).isAvailable) return emptyFlow()
     return streamFor(type).observe(options)
   }
 
-  override suspend fun getSnapshot(type: SensorType): SensorEvent? {
-    return streamFor(type).getSnapshot()
-  }
-
-  override fun stop(type: SensorType) {
-    streamFor(type).stop()
+  override suspend fun getSnapshot(
+    type: SensorType,
+    options: SensorOptions,
+  ): SensorEvent? {
+    if (!isAvailable(type).isAvailable) return null
+    return streamFor(type).getSnapshot(options)
   }
 
   private fun streamFor(type: SensorType): SensorStream {
-    return streams.getOrPut(type) {
-      SensorStream(type, sensorManager)
+    return synchronized(streamLock) {
+      streams.getOrPut(type) {
+        SensorStream(type, sensorManager)
+      }
     }
   }
 
@@ -76,137 +98,122 @@ private class SensorStream(
 
   private val lock = Any()
 
-  private var observerCount = 0
+  private val observerOptions = mutableMapOf<Long, SensorOptions>()
+  private var nextObserverId = 0L
   private var isMonitoring = false
-  private var isExplicitlyStopped = false
   private var activeOptions: SensorOptions? = null
   private var lastEvent: SensorEvent? = null
   private var listener: SensorEventListener? = null
   private var triggerListener: TriggerEventListener? = null
 
   fun observe(options: SensorOptions): Flow<SensorEvent> {
-    return events
-      .onStart { onObserverStart(options) }
-      .onCompletion { onObserverStop() }
-      .conflate()
+    return flow {
+      val observerId = onObserverStart(options)
+      try {
+        val cached = synchronized(lock) { lastEvent }
+        cached?.let { emit(it) }
+        if (cached == null && synchronized(lock) { !isMonitoring }) return@flow
+        emitAll(events)
+      } finally {
+        onObserverStop(observerId)
+      }
+    }.conflate()
   }
 
-  suspend fun getSnapshot(): SensorEvent? {
-    val cached = lastEvent
+  suspend fun getSnapshot(options: SensorOptions): SensorEvent? {
+    val cached = synchronized(lock) { lastEvent }
     if (cached != null) return cached
 
-    val sensor = resolveSensor() ?: return null
-    val options = activeOptions ?: SensorOptions()
-    val samplingPeriodUs = options.toSamplingPeriodUs()
+    return observe(options).firstOrNull()
+  }
 
-    return suspendCancellableCoroutine { continuation ->
-      if (type.isTriggerSensor()) {
-        val oneShotTriggerListener = object : TriggerEventListener() {
-          override fun onTrigger(event: TriggerEvent?) {
-            val mapped = event?.toSensorEvent(type)
-            if (mapped != null) {
-              lastEvent = mapped
-              continuation.resume(mapped)
-            } else {
-              continuation.resume(null)
-            }
-          }
+  private fun onObserverStart(options: SensorOptions): Long {
+    synchronized(lock) {
+      val observerId = nextObserverId++
+      observerOptions[observerId] = options
+      restartMonitoringIfNeeded()
+      return observerId
+    }
+  }
+
+  private fun onObserverStop(observerId: Long) {
+    synchronized(lock) {
+      observerOptions.remove(observerId)
+      if (observerOptions.isEmpty()) {
+        if (isMonitoring) {
+          stopMonitoringInternal()
         }
-
-        sensorManager.requestTriggerSensor(oneShotTriggerListener, sensor)
-
-        continuation.invokeOnCancellation {
-          sensorManager.cancelTriggerSensor(oneShotTriggerListener, sensor)
-        }
+        activeOptions = null
       } else {
-        val oneShotListener = object : SensorEventListener {
-          override fun onSensorChanged(event: android.hardware.SensorEvent) {
-            val mapped = event.toSensorEvent(type)
-            lastEvent = mapped
-            sensorManager.unregisterListener(this, sensor)
-            continuation.resume(mapped)
-          }
-
-          override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
-        }
-
-        registerListener(
-          listener = oneShotListener,
-          sensor = sensor,
-          samplingPeriodUs = samplingPeriodUs,
-          batchEnabled = options.batchEnabled,
-        )
-
-        continuation.invokeOnCancellation {
-          sensorManager.unregisterListener(oneShotListener, sensor)
-        }
+        restartMonitoringIfNeeded()
       }
     }
   }
 
-  fun stop() {
-    synchronized(lock) {
-      isExplicitlyStopped = true
-      if (isMonitoring) {
-        stopMonitoringInternal()
-      }
+  private fun restartMonitoringIfNeeded() {
+    val nextOptions = observerOptions.values.effectiveOptions()
+    if (nextOptions == null) {
+      return
     }
-  }
 
-  private fun onObserverStart(options: SensorOptions) {
-    synchronized(lock) {
-      observerCount++
-      isExplicitlyStopped = false
-      val shouldRestart = activeOptions != null && activeOptions != options
-      activeOptions = options
-      if (!isMonitoring) {
-        startMonitoringInternal(options)
-      } else if (shouldRestart) {
-        stopMonitoringInternal()
-        startMonitoringInternal(options)
-      }
+    if (!isMonitoring) {
+      activeOptions = nextOptions
+      startMonitoringInternal(nextOptions)
+      return
     }
-  }
 
-  private fun onObserverStop() {
-    synchronized(lock) {
-      observerCount = (observerCount - 1).coerceAtLeast(0)
-      if (observerCount == 0 && isMonitoring) {
-        stopMonitoringInternal()
-      }
+    if (activeOptions != nextOptions) {
+      stopMonitoringInternal()
+      activeOptions = nextOptions
+      startMonitoringInternal(nextOptions)
     }
   }
 
   private fun startMonitoringInternal(options: SensorOptions) {
-    if (isMonitoring || isExplicitlyStopped) return
+    if (isMonitoring) return
 
     val sensor = resolveSensor() ?: return
     val samplingPeriodUs = options.toSamplingPeriodUs()
+    val maxReportLatencyUs = options.toMaxReportLatencyUs()
 
     if (type.isTriggerSensor()) {
       val newTriggerListener = object : TriggerEventListener() {
         override fun onTrigger(event: TriggerEvent?) {
           val mapped = event?.toSensorEvent(type) ?: return
-          lastEvent = mapped
+          synchronized(lock) {
+            lastEvent = mapped
+          }
           events.tryEmit(mapped)
           synchronized(lock) {
-            if (isMonitoring && !isExplicitlyStopped) {
-              sensorManager.requestTriggerSensor(this, sensor)
+            if (isMonitoring) {
+              isMonitoring = try {
+                sensorManager.requestTriggerSensor(this, sensor)
+              } catch (_: SecurityException) {
+                false
+              }
             }
           }
         }
       }
 
       triggerListener = newTriggerListener
-      sensorManager.requestTriggerSensor(newTriggerListener, sensor)
-      isMonitoring = true
+      isMonitoring = try {
+        sensorManager.requestTriggerSensor(newTriggerListener, sensor)
+      } catch (_: SecurityException) {
+        false
+      }
+      if (!isMonitoring) {
+        triggerListener = null
+      }
       return
     }
 
     val newListener = object : SensorEventListener {
       override fun onSensorChanged(event: android.hardware.SensorEvent) {
         val mapped = event.toSensorEvent(type)
-        lastEvent = mapped
+        synchronized(lock) {
+          lastEvent = mapped
+        }
         events.tryEmit(mapped)
       }
 
@@ -215,14 +222,15 @@ private class SensorStream(
 
     listener = newListener
 
-    registerListener(
+    isMonitoring = registerListener(
       listener = newListener,
       sensor = sensor,
       samplingPeriodUs = samplingPeriodUs,
-      batchEnabled = options.batchEnabled,
+      maxReportLatencyUs = maxReportLatencyUs,
     )
-
-    isMonitoring = true
+    if (!isMonitoring) {
+      listener = null
+    }
   }
 
   private fun stopMonitoringInternal() {
@@ -251,21 +259,25 @@ private class SensorStream(
     listener: SensorEventListener,
     sensor: Sensor,
     samplingPeriodUs: Int,
-    batchEnabled: Boolean,
-  ) {
-    if (batchEnabled) {
-      sensorManager.registerListener(
-        listener,
-        sensor,
-        samplingPeriodUs,
-        samplingPeriodUs,
-      )
-    } else {
-      sensorManager.registerListener(
-        listener,
-        sensor,
-        samplingPeriodUs,
-      )
+    maxReportLatencyUs: Int,
+  ): Boolean {
+    return try {
+      if (maxReportLatencyUs > 0) {
+        sensorManager.registerListener(
+          listener,
+          sensor,
+          samplingPeriodUs,
+          maxReportLatencyUs,
+        )
+      } else {
+        sensorManager.registerListener(
+          listener,
+          sensor,
+          samplingPeriodUs,
+        )
+      }
+    } catch (_: SecurityException) {
+      false
     }
   }
 }
@@ -292,6 +304,19 @@ private fun SensorType.toAndroidSensorType(): Int {
     SensorType.STATIONARY_DETECT -> Sensor.TYPE_STATIONARY_DETECT
     SensorType.AMBIENT_TEMPERATURE -> Sensor.TYPE_AMBIENT_TEMPERATURE
     SensorType.RELATIVE_HUMIDITY -> Sensor.TYPE_RELATIVE_HUMIDITY
+  }
+}
+
+private fun SensorType.requiredAndroidPermission(): String? {
+  return when (this) {
+    SensorType.STEP_COUNTER,
+    SensorType.STEP_DETECTOR,
+    -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      Manifest.permission.ACTIVITY_RECOGNITION
+    } else {
+      null
+    }
+    else -> null
   }
 }
 
@@ -322,10 +347,34 @@ private fun SensorOptions.toSamplingPeriodUs(): Int {
   }
 }
 
+private fun SensorOptions.toMaxReportLatencyUs(): Int {
+  return maxReportLatencyMillis
+    .coerceAtMost(Int.MAX_VALUE / 1_000L)
+    .times(1_000L)
+    .toInt()
+}
+
+private fun Collection<SensorOptions>.effectiveOptions(): SensorOptions? {
+  if (isEmpty()) return null
+
+  return reduce { current, next ->
+    val currentSamplingPeriodUs = current.toSamplingPeriodUs()
+    val nextSamplingPeriodUs = next.toSamplingPeriodUs()
+    val fastest = if (nextSamplingPeriodUs < currentSamplingPeriodUs) next else current
+
+    fastest.copy(
+      maxReportLatencyMillis = minOf(
+        current.maxReportLatencyMillis,
+        next.maxReportLatencyMillis,
+      ),
+    )
+  }
+}
+
 private fun android.hardware.SensorEvent.toSensorEvent(type: SensorType): SensorEvent {
   return SensorEvent(
     type = type,
-    values = values.copyOf(),
+    values = values.toList(),
     timestampNanos = timestamp,
     accuracy = accuracy.toSensorAccuracy(),
   )
@@ -334,7 +383,7 @@ private fun android.hardware.SensorEvent.toSensorEvent(type: SensorType): Sensor
 private fun TriggerEvent.toSensorEvent(type: SensorType): SensorEvent {
   return SensorEvent(
     type = type,
-    values = values.copyOf(),
+    values = values.toList(),
     timestampNanos = timestamp,
     accuracy = SensorAccuracy.UNRELIABLE,
   )
