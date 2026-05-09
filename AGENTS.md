@@ -25,6 +25,7 @@
 - Android instrumentation tests live under `toolkit/src/androidDeviceTest` and use AndroidX test + JUnit.
 - Name tests with `*Test` suffix (e.g., `DiskLogStrategyBufferTest`).
 - After any code, manifest, resource, Gradle, or demo UI change, run the affected tests and the relevant lint tasks before committing. For `toolkit/` changes run `./gradlew :toolkit:lint --no-parallel`; for `composeApp/` changes run `./gradlew :composeApp:lint --no-parallel`. If a change touches both modules, run both lint tasks.
+- Run KMP/AGP verification tasks such as tests, lint, assemble, and compile serially. Do not launch multiple Gradle processes against this workspace in parallel, because they can race on shared build outputs and produce misleading missing-class or unresolved-reference failures.
 
 ## Commit & Pull Request Guidelines
 - Use an English, imperative, concise subject line.
