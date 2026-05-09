@@ -190,7 +190,6 @@ if (platform.isIos) {
   <string name="demo_keyboard_title">Keyboard status monitor</string>
   <string name="demo_keyboard_description">Observe soft keyboard visibility and height changes.</string>
   <string name="demo_keyboard_code"><![CDATA[val keyboardMonitor = Toolkit.keyboard()
-keyboardMonitor.startMonitoring()
 scope.launch {
   keyboardMonitor.observeKeyboardStatus().collect { status ->
     if (status.isVisible) {
@@ -198,10 +197,9 @@ scope.launch {
     }
   }
 }
-val status = keyboardMonitor.getCurrentStatus()
+val status = keyboardMonitor.getCurrentKeyboardStatus()
 println(status.isVisible)
-println(status.heightPx)
-keyboardMonitor.stopMonitoring()]]></string>
+println(status.heightPx)]]></string>
 
   <string name="action_start_monitoring">Start monitoring</string>
   <string name="action_stop_monitoring">Stop monitoring</string>

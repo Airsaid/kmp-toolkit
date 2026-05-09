@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 internal class KeyboardMonitorRouter : KeyboardMonitor {
 
@@ -22,12 +23,9 @@ internal class KeyboardMonitorRouter : KeyboardMonitor {
 
   private var isRegistered = false
   private var currentAnchor: View? = null
-  private var currentMonitor: KeyboardMonitor? = null
   private var monitorJob: Job? = null
 
   private var isMonitoring = false
-  private var isManuallyStarted = false
-  private var isExplicitlyStopped = false
   private var observerCount = 0
 
   private val anchorListener: (KeyboardAnchorEvent) -> Unit = { event ->
@@ -42,39 +40,23 @@ internal class KeyboardMonitorRouter : KeyboardMonitor {
       .distinctUntilChanged()
   }
 
-  override suspend fun getCurrentStatus(): KeyboardStatus {
-    return statusState.value
-  }
-
-  override fun startMonitoring() {
-    synchronized(lock) {
-      isExplicitlyStopped = false
-      isManuallyStarted = true
-      registerAnchorListenerIfNeeded()
-      if (!isMonitoring) {
-        startMonitoringInternalLocked()
-      }
+  override suspend fun getCurrentKeyboardStatus(): KeyboardStatus = withContext(Dispatchers.Main.immediate) {
+    val anchor = synchronized(lock) {
+      currentAnchor ?: ActivityLifecycleRegistry.getCurrentActivity()?.window?.decorView
     }
-  }
-
-  override fun stopMonitoring() {
-    synchronized(lock) {
-      isManuallyStarted = false
-      isExplicitlyStopped = true
-      if (isMonitoring) {
-        stopMonitoringInternalLocked()
-      }
-      if (observerCount == 0) {
-        unregisterAnchorListenerIfNeeded()
-      }
+    if (anchor != null) {
+      statusState.value = KeyboardMonitorImpl(anchor).getCurrentKeyboardStatus()
+    } else {
+      statusState.value = KeyboardStatus(isVisible = false, heightPx = 0)
     }
+    statusState.value
   }
 
   private fun onObserverStart() {
     synchronized(lock) {
       observerCount += 1
       registerAnchorListenerIfNeeded()
-      if (!isExplicitlyStopped && !isMonitoring) {
+      if (!isMonitoring) {
         startMonitoringInternalLocked()
       }
     }
@@ -83,17 +65,17 @@ internal class KeyboardMonitorRouter : KeyboardMonitor {
   private fun onObserverStop() {
     synchronized(lock) {
       observerCount = (observerCount - 1).coerceAtLeast(0)
-      if (observerCount == 0 && !isManuallyStarted && isMonitoring) {
+      if (observerCount == 0 && isMonitoring) {
         stopMonitoringInternalLocked()
       }
-      if (observerCount == 0 && !isManuallyStarted) {
+      if (observerCount == 0) {
         unregisterAnchorListenerIfNeeded()
       }
     }
   }
 
   private fun shouldMonitorLocked(): Boolean {
-    return !isExplicitlyStopped && (isManuallyStarted || observerCount > 0)
+    return observerCount > 0
   }
 
   private fun onAnchorEvent(event: KeyboardAnchorEvent) {
@@ -135,8 +117,6 @@ internal class KeyboardMonitorRouter : KeyboardMonitor {
       return
     }
     val monitor = KeyboardMonitorImpl(view)
-    currentMonitor = monitor
-    monitor.startMonitoring()
     monitorJob = scope.launch {
       monitor.observeKeyboardStatus().collect { status ->
         statusState.value = status
@@ -146,8 +126,6 @@ internal class KeyboardMonitorRouter : KeyboardMonitor {
   }
 
   private fun stopMonitoringInternalLocked() {
-    currentMonitor?.stopMonitoring()
-    currentMonitor = null
     monitorJob?.cancel()
     monitorJob = null
     isMonitoring = false

@@ -1,14 +1,17 @@
 package com.airsaid.toolkit
 
 import android.view.View
+import android.view.ViewTreeObserver
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.withContext
 
 /**
  * Android implementation of [KeyboardMonitor].
@@ -17,14 +20,27 @@ internal class KeyboardMonitorImpl(
   private val view: View,
 ) : KeyboardMonitor {
 
-  private val thresholdPx = (view.resources.displayMetrics.density * VISIBILITY_THRESHOLD_DP).toInt()
   private val statusState = MutableStateFlow(KeyboardStatus(isVisible = false, heightPx = 0))
   private val lock = Any()
+  private val layoutListener = ViewTreeObserver.OnGlobalLayoutListener {
+    updateStatusFromRootInsets()
+  }
+  private val attachListener = object : View.OnAttachStateChangeListener {
+    override fun onViewAttachedToWindow(v: View) {
+      addLayoutListener()
+      updateStatusFromRootInsets()
+      ViewCompat.requestApplyInsets(v)
+    }
+
+    override fun onViewDetachedFromWindow(v: View) {
+      removeLayoutListener()
+      statusState.value = KeyboardStatus(isVisible = false, heightPx = 0)
+    }
+  }
 
   private var isMonitoring = false
-  private var isManuallyStarted = false
-  private var isExplicitlyStopped = false
   private var observerCount = 0
+  private var isLayoutListenerAdded = false
 
   override fun observeKeyboardStatus(): Flow<KeyboardStatus> {
     return statusState
@@ -34,34 +50,15 @@ internal class KeyboardMonitorImpl(
       .distinctUntilChanged()
   }
 
-  override suspend fun getCurrentStatus(): KeyboardStatus {
-    return statusState.value
-  }
-
-  override fun startMonitoring() {
-    synchronized(lock) {
-      isExplicitlyStopped = false
-      isManuallyStarted = true
-      if (!isMonitoring) {
-        startMonitoringInternal()
-      }
-    }
-  }
-
-  override fun stopMonitoring() {
-    synchronized(lock) {
-      isManuallyStarted = false
-      isExplicitlyStopped = true
-      if (isMonitoring) {
-        stopMonitoringInternal()
-      }
-    }
+  override suspend fun getCurrentKeyboardStatus(): KeyboardStatus = withContext(Dispatchers.Main.immediate) {
+    updateStatusFromRootInsets()
+    statusState.value
   }
 
   private fun onObserverStart() {
     synchronized(lock) {
       observerCount += 1
-      if (!isExplicitlyStopped && !isMonitoring) {
+      if (!isMonitoring) {
         startMonitoringInternal()
       }
     }
@@ -70,7 +67,7 @@ internal class KeyboardMonitorImpl(
   private fun onObserverStop() {
     synchronized(lock) {
       observerCount = (observerCount - 1).coerceAtLeast(0)
-      if (observerCount == 0 && !isManuallyStarted && isMonitoring) {
+      if (observerCount == 0 && isMonitoring) {
         stopMonitoringInternal()
       }
     }
@@ -79,19 +76,46 @@ internal class KeyboardMonitorImpl(
   private fun startMonitoringInternal() {
     if (isMonitoring) return
 
-    ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
-      updateStatus(insets)
-      insets
+    view.addOnAttachStateChangeListener(attachListener)
+    if (view.isAttachedToWindow) {
+      addLayoutListener()
+      updateStatusFromRootInsets()
+    } else {
+      statusState.value = KeyboardStatus(isVisible = false, heightPx = 0)
     }
-    ViewCompat.getRootWindowInsets(view)?.let(::updateStatus)
     ViewCompat.requestApplyInsets(view)
     isMonitoring = true
   }
 
   private fun stopMonitoringInternal() {
-    ViewCompat.setOnApplyWindowInsetsListener(view, null)
+    view.removeOnAttachStateChangeListener(attachListener)
+    removeLayoutListener()
     isMonitoring = false
     statusState.value = KeyboardStatus(isVisible = false, heightPx = 0)
+  }
+
+  private fun addLayoutListener() {
+    if (isLayoutListenerAdded) return
+    view.viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
+    isLayoutListenerAdded = true
+  }
+
+  private fun removeLayoutListener() {
+    if (!isLayoutListenerAdded) return
+    val observer = view.viewTreeObserver
+    if (observer.isAlive) {
+      observer.removeOnGlobalLayoutListener(layoutListener)
+    }
+    isLayoutListenerAdded = false
+  }
+
+  private fun updateStatusFromRootInsets() {
+    val insets = ViewCompat.getRootWindowInsets(view)
+    if (insets == null) {
+      statusState.value = KeyboardStatus(isVisible = false, heightPx = 0)
+      return
+    }
+    updateStatus(insets)
   }
 
   private fun updateStatus(insets: WindowInsetsCompat) {
@@ -99,11 +123,6 @@ internal class KeyboardMonitorImpl(
     statusState.value = resolveKeyboardStatus(
       isVisible = insets.isVisible(WindowInsetsCompat.Type.ime()),
       heightPx = imeHeight,
-      thresholdPx = thresholdPx,
     )
-  }
-
-  companion object {
-    private const val VISIBILITY_THRESHOLD_DP = 100f
   }
 }

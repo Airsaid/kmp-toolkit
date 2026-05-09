@@ -192,7 +192,6 @@ Use `Toolkit.keyboard()` to observe soft keyboard visibility and height changes.
 
 ```kotlin
 val keyboardMonitor = Toolkit.keyboard()
-keyboardMonitor.startMonitoring()
 
 scope.launch {
   keyboardMonitor.observeKeyboardStatus().collect { status ->
@@ -202,14 +201,14 @@ scope.launch {
   }
 }
 
-val status = keyboardMonitor.getCurrentStatus()
+val status = keyboardMonitor.getCurrentKeyboardStatus()
 println(status.isVisible)
 println(status.heightPx)
-
-keyboardMonitor.stopMonitoring()
 ```
 
-Keyboard height is reported in platform pixels and may be `0` when the keyboard is hidden.
+Monitoring starts automatically while `observeKeyboardStatus()` is collected and stops when there
+are no active collectors. `heightPx` reports the visible keyboard overlap in platform pixels and is
+`0` when the keyboard is hidden.
 
 ## Haptics
 

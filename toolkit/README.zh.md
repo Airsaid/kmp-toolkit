@@ -192,7 +192,6 @@ Android 会为该能力声明 `ACCESS_NETWORK_STATE`。
 
 ```kotlin
 val keyboardMonitor = Toolkit.keyboard()
-keyboardMonitor.startMonitoring()
 
 scope.launch {
   keyboardMonitor.observeKeyboardStatus().collect { status ->
@@ -202,14 +201,13 @@ scope.launch {
   }
 }
 
-val status = keyboardMonitor.getCurrentStatus()
+val status = keyboardMonitor.getCurrentKeyboardStatus()
 println(status.isVisible)
 println(status.heightPx)
-
-keyboardMonitor.stopMonitoring()
 ```
 
-键盘高度使用平台像素表示，键盘隐藏时可能为 `0`。
+当 `observeKeyboardStatus()` 被收集时会自动开始监听，所有收集都结束后会自动停止。
+`heightPx` 表示键盘在当前界面中的实际遮挡高度，使用平台像素表示，键盘隐藏时为 `0`。
 
 ## 触感反馈
 

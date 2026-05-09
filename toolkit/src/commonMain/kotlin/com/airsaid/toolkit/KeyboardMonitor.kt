@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.Flow
  * Represents the current keyboard status.
  *
  * @property isVisible True when the keyboard is visible.
- * @property heightPx Keyboard height in pixels.
+ * @property heightPx Visible keyboard overlap height in platform pixels. This is `0` when
+ * the keyboard is hidden.
  */
 data class KeyboardStatus(
   val isVisible: Boolean,
@@ -20,23 +21,16 @@ interface KeyboardMonitor {
 
   /**
    * Observes keyboard status updates as a [Flow].
+   *
+   * Monitoring starts automatically while this flow is collected and stops when there are
+   * no active collectors.
    */
   fun observeKeyboardStatus(): Flow<KeyboardStatus>
 
   /**
-   * Retrieves the current keyboard status.
+   * Retrieves the latest known keyboard status.
    */
-  suspend fun getCurrentStatus(): KeyboardStatus
-
-  /**
-   * Starts monitoring keyboard changes.
-   */
-  fun startMonitoring()
-
-  /**
-   * Stops monitoring keyboard changes.
-   */
-  fun stopMonitoring()
+  suspend fun getCurrentKeyboardStatus(): KeyboardStatus
 }
 
 /**
@@ -50,19 +44,11 @@ internal expect object KeyboardMonitorFactory {
   fun create(): KeyboardMonitor
 }
 
-internal fun resolveKeyboardVisibility(
-  heightPx: Int,
-  thresholdPx: Int,
-): Boolean {
-  return heightPx > thresholdPx
-}
-
 internal fun resolveKeyboardStatus(
   isVisible: Boolean,
   heightPx: Int,
-  thresholdPx: Int,
 ): KeyboardStatus {
-  val resolvedVisible = isVisible && resolveKeyboardVisibility(heightPx, thresholdPx)
+  val resolvedVisible = isVisible && heightPx > 0
   return KeyboardStatus(
     isVisible = resolvedVisible,
     heightPx = if (resolvedVisible) heightPx else 0,
