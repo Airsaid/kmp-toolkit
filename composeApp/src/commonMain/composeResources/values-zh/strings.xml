@@ -134,7 +134,7 @@ val saved = files.saveFile(
 )]]></string>
   <string name="demo_share_title">系统分享</string>
   <string name="demo_share_description">调起系统分享面板，分享文本、链接与图片。</string>
-  <string name="demo_share_code"><![CDATA[Toolkit.share().share(
+  <string name="demo_share_code"><![CDATA[val result = Toolkit.share().share(
   contents = listOf(
     ShareContent.Text("hello"),
     ShareContent.Url("https://example.com"),
@@ -145,7 +145,8 @@ val saved = files.saveFile(
       ShareExcludedActivity.COPY_TO_PASTEBOARD,
     ),
   ),
-)]]></string>
+)
+println(result)]]></string>
   <string name="demo_device_info_title">设备信息获取</string>
   <string name="demo_device_info_description">读取设备型号、系统信息、屏幕与语言偏好。</string>
   <string name="demo_device_info_code"><![CDATA[val device = Toolkit.deviceInfo()
@@ -316,6 +317,10 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="action_share_url">分享链接</string>
   <string name="action_share_image">分享图片</string>
   <string name="action_share_combination">分享组合</string>
+  <string name="share_presented">分享面板已打开</string>
+  <string name="share_completed">分享已完成</string>
+  <string name="share_cancelled">分享已取消</string>
+  <string name="share_failed">分享失败</string>
   <string name="share_text_success">分享文本成功</string>
   <string name="share_text_failure">分享文本失败</string>
   <string name="share_url_success">分享链接成功</string>

@@ -134,7 +134,7 @@ val saved = files.saveFile(
 )]]></string>
   <string name="demo_share_title">System share sheet</string>
   <string name="demo_share_description">Open the system share sheet to share text, links, and images.</string>
-  <string name="demo_share_code"><![CDATA[Toolkit.share().share(
+  <string name="demo_share_code"><![CDATA[val result = Toolkit.share().share(
   contents = listOf(
     ShareContent.Text("hello"),
     ShareContent.Url("https://example.com"),
@@ -145,7 +145,8 @@ val saved = files.saveFile(
       ShareExcludedActivity.COPY_TO_PASTEBOARD,
     ),
   ),
-)]]></string>
+)
+println(result)]]></string>
   <string name="demo_device_info_title">Device information</string>
   <string name="demo_device_info_description">Read device model, system information, screen metrics, and language preferences.</string>
   <string name="demo_device_info_code"><![CDATA[val device = Toolkit.deviceInfo()
@@ -317,6 +318,10 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="action_share_url">Share link</string>
   <string name="action_share_image">Share image</string>
   <string name="action_share_combination">Share combination</string>
+  <string name="share_presented">Share sheet opened</string>
+  <string name="share_completed">Share completed</string>
+  <string name="share_cancelled">Share cancelled</string>
+  <string name="share_failed">Share failed</string>
   <string name="share_text_success">Text shared</string>
   <string name="share_text_failure">Text share failed</string>
   <string name="share_url_success">Link shared</string>

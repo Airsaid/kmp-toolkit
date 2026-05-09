@@ -1,6 +1,7 @@
 package com.airsaid.toolkit.demo.toolkit
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
@@ -11,14 +12,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.airsaid.toolkit.ShareContent
 import com.airsaid.toolkit.ShareExcludedActivity
 import com.airsaid.toolkit.ShareOptions
+import com.airsaid.toolkit.ShareResult
 import com.airsaid.toolkit.Toolkit
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import com.airsaid.toolkit.demo.resources.Res
 import com.airsaid.toolkit.demo.resources.action_share_combination
 import com.airsaid.toolkit.demo.resources.action_share_image
@@ -26,18 +28,15 @@ import com.airsaid.toolkit.demo.resources.action_share_text
 import com.airsaid.toolkit.demo.resources.action_share_url
 import com.airsaid.toolkit.demo.resources.app_logo_not_found
 import com.airsaid.toolkit.demo.resources.result_format
-import com.airsaid.toolkit.demo.resources.share_combination_failure
-import com.airsaid.toolkit.demo.resources.share_combination_success
+import com.airsaid.toolkit.demo.resources.share_cancelled
+import com.airsaid.toolkit.demo.resources.share_completed
 import com.airsaid.toolkit.demo.resources.share_default_text
-import com.airsaid.toolkit.demo.resources.share_image_failure
-import com.airsaid.toolkit.demo.resources.share_image_success
-import com.airsaid.toolkit.demo.resources.share_text_failure
+import com.airsaid.toolkit.demo.resources.share_failed
+import com.airsaid.toolkit.demo.resources.share_presented
 import com.airsaid.toolkit.demo.resources.share_text_label
-import com.airsaid.toolkit.demo.resources.share_text_success
 import com.airsaid.toolkit.demo.resources.share_title
-import com.airsaid.toolkit.demo.resources.share_url_failure
 import com.airsaid.toolkit.demo.resources.share_url_label
-import com.airsaid.toolkit.demo.resources.share_url_success
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -45,12 +44,13 @@ import org.jetbrains.compose.resources.stringResource
 fun ToolkitShareScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.ShareRoute } }
   val shareToolkit = remember { Toolkit.share() }
+  val coroutineScope = rememberCoroutineScope()
   val appLogoBytes = rememberAppLogoBytes()
   val defaultText = stringResource(Res.string.share_default_text)
   val shareTitle = stringResource(Res.string.share_title)
   var text by remember(defaultText) { mutableStateOf(defaultText) }
   var url by remember { mutableStateOf("https://example.com") }
-  var lastResult by remember { mutableStateOf<ShareResult?>(null) }
+  var lastResult by remember { mutableStateOf<ShareDisplayResult?>(null) }
 
   ToolkitDemoPage(
     descriptionRes = item.descriptionRes,
@@ -75,38 +75,47 @@ fun ToolkitShareScreen(modifier: Modifier = Modifier) {
       verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
       Button(onClick = {
-        val success = shareToolkit.shareText(
-          text = text,
-          options = ShareOptions(title = shareTitle),
-        )
-        lastResult = if (success) ShareResult.TextSuccess else ShareResult.TextFailure
+        coroutineScope.launch {
+          lastResult = ShareDisplayResult.Result(
+            shareToolkit.shareText(
+              text = text,
+              options = ShareOptions(title = shareTitle),
+            ),
+          )
+        }
       }) {
         Text(text = stringResource(Res.string.action_share_text))
       }
       OutlinedButton(onClick = {
-        val success = shareToolkit.shareUrl(
-          url = url,
-          options = ShareOptions(title = shareTitle),
-        )
-        lastResult = if (success) ShareResult.UrlSuccess else ShareResult.UrlFailure
+        coroutineScope.launch {
+          lastResult = ShareDisplayResult.Result(
+            shareToolkit.shareUrl(
+              url = url,
+              options = ShareOptions(title = shareTitle),
+            ),
+          )
+        }
       }) {
         Text(text = stringResource(Res.string.action_share_url))
       }
       OutlinedButton(onClick = {
         val bytes = appLogoBytes
         if (bytes == null) {
-          lastResult = ShareResult.LogoMissing
+          lastResult = ShareDisplayResult.LogoMissing
           return@OutlinedButton
         }
-        val success = shareToolkit.shareImage(
-          bytes = bytes,
-          mimeType = "image/png",
-          options = ShareOptions(
-            title = shareTitle,
-            excludedActivities = listOf(ShareExcludedActivity.COPY_TO_PASTEBOARD),
-          ),
-        )
-        lastResult = if (success) ShareResult.ImageSuccess else ShareResult.ImageFailure
+        coroutineScope.launch {
+          lastResult = ShareDisplayResult.Result(
+            shareToolkit.shareImage(
+              bytes = bytes,
+              mimeType = "image/png",
+              options = ShareOptions(
+                title = shareTitle,
+                excludedActivities = listOf(ShareExcludedActivity.COPY_TO_PASTEBOARD),
+              ),
+            ),
+          )
+        }
       }) {
         Text(text = stringResource(Res.string.action_share_image))
       }
@@ -120,11 +129,14 @@ fun ToolkitShareScreen(modifier: Modifier = Modifier) {
           }
           appLogoBytes?.let { add(ShareContent.Image(it, "image/png")) }
         }
-        val success = shareToolkit.share(
-          contents = contents,
-          options = ShareOptions(title = shareTitle),
-        )
-        lastResult = if (success) ShareResult.CombinationSuccess else ShareResult.CombinationFailure
+        coroutineScope.launch {
+          lastResult = ShareDisplayResult.Result(
+            shareToolkit.share(
+              contents = contents,
+              options = ShareOptions(title = shareTitle),
+            ),
+          )
+        }
       }) {
         Text(text = stringResource(Res.string.action_share_combination))
       }
@@ -138,29 +150,28 @@ fun ToolkitShareScreen(modifier: Modifier = Modifier) {
   }
 }
 
-private enum class ShareResult {
-  TextSuccess,
-  TextFailure,
-  UrlSuccess,
-  UrlFailure,
-  ImageSuccess,
-  ImageFailure,
-  CombinationSuccess,
-  CombinationFailure,
-  LogoMissing,
+private sealed interface ShareDisplayResult {
+  data class Result(
+    val value: ShareResult,
+  ) : ShareDisplayResult
+
+  data object LogoMissing : ShareDisplayResult
+}
+
+@Composable
+private fun ShareDisplayResult.displayText(): String {
+  return when (this) {
+    is ShareDisplayResult.Result -> value.displayText()
+    ShareDisplayResult.LogoMissing -> stringResource(Res.string.app_logo_not_found)
+  }
 }
 
 @Composable
 private fun ShareResult.displayText(): String {
   return when (this) {
-    ShareResult.TextSuccess -> stringResource(Res.string.share_text_success)
-    ShareResult.TextFailure -> stringResource(Res.string.share_text_failure)
-    ShareResult.UrlSuccess -> stringResource(Res.string.share_url_success)
-    ShareResult.UrlFailure -> stringResource(Res.string.share_url_failure)
-    ShareResult.ImageSuccess -> stringResource(Res.string.share_image_success)
-    ShareResult.ImageFailure -> stringResource(Res.string.share_image_failure)
-    ShareResult.CombinationSuccess -> stringResource(Res.string.share_combination_success)
-    ShareResult.CombinationFailure -> stringResource(Res.string.share_combination_failure)
-    ShareResult.LogoMissing -> stringResource(Res.string.app_logo_not_found)
+    ShareResult.Presented -> stringResource(Res.string.share_presented)
+    ShareResult.Completed -> stringResource(Res.string.share_completed)
+    ShareResult.Cancelled -> stringResource(Res.string.share_cancelled)
+    is ShareResult.Failed -> stringResource(Res.string.share_failed)
   }
 }

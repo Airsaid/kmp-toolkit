@@ -293,21 +293,22 @@ val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
 ## Share
 
 Use `Toolkit.share()` to present the system share sheet for text, URLs, images, and files.
+Share calls are suspending and return a `ShareResult`.
 
 ```kotlin
 val shareToolkit = Toolkit.share()
 
-shareToolkit.shareText(
+val textResult = shareToolkit.shareText(
   text = "hello",
   options = ShareOptions(title = "Share"),
 )
 
-shareToolkit.shareUrl(
+val urlResult = shareToolkit.shareUrl(
   url = "https://example.com",
   options = ShareOptions(title = "Share"),
 )
 
-shareToolkit.share(
+val result = shareToolkit.share(
   contents = listOf(
     ShareContent.Text("hello"),
     ShareContent.Url("https://example.com"),
@@ -321,7 +322,9 @@ shareToolkit.share(
 )
 ```
 
-`ShareOptions.title` is used as the Android chooser title. `excludedActivities` maps to iOS share sheet exclusions.
+`ShareResult.Completed` means the platform confirmed completion or target selection. On Android, it means the user selected a share target and does not guarantee the receiving app actually sent or saved the content. `ShareResult.Cancelled` is returned when the platform confirms cancellation. `ShareResult.Failed` describes requests that could not be presented.
+
+`ShareOptions.title` is used as the Android chooser title. `excludedActivities` maps to iOS share sheet exclusions. Existing string file paths and URIs remain supported with `ShareContent.File`, and files returned by `FileToolkit` can be shared with `ShareContent.PlatformFile` or `shareFile(file = platformFile)`.
 
 ## File Picking and Saving
 

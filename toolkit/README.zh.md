@@ -289,22 +289,23 @@ val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
 
 ## 系统分享
 
-使用 `Toolkit.share()` 调起系统分享面板，支持文本、链接、图片与文件。
+使用 `Toolkit.share()` 调起系统分享面板，支持文本、链接、图片与文件。分享方法为
+suspend API，并返回 `ShareResult`。
 
 ```kotlin
 val shareToolkit = Toolkit.share()
 
-shareToolkit.shareText(
+val textResult = shareToolkit.shareText(
   text = "hello",
   options = ShareOptions(title = "Share"),
 )
 
-shareToolkit.shareUrl(
+val urlResult = shareToolkit.shareUrl(
   url = "https://example.com",
   options = ShareOptions(title = "Share"),
 )
 
-shareToolkit.share(
+val result = shareToolkit.share(
   contents = listOf(
     ShareContent.Text("hello"),
     ShareContent.Url("https://example.com"),
@@ -318,7 +319,9 @@ shareToolkit.share(
 )
 ```
 
-`ShareOptions.title` 会作为 Android chooser 标题使用。`excludedActivities` 会映射到 iOS 分享面板排除项。
+`ShareResult.Completed` 表示平台确认完成或用户选择了分享目标。Android 侧仅表示用户选择了目标应用，不保证接收方一定完成发送或保存。`ShareResult.Cancelled` 表示平台确认用户取消，`ShareResult.Failed` 表示分享面板未能成功调起。
+
+`ShareOptions.title` 会作为 Android chooser 标题使用。`excludedActivities` 会映射到 iOS 分享面板排除项。现有字符串路径和 URI 仍可通过 `ShareContent.File` 分享；`FileToolkit` 返回的文件可通过 `ShareContent.PlatformFile` 或 `shareFile(file = platformFile)` 分享。
 
 ## 文件选择与保存
 
