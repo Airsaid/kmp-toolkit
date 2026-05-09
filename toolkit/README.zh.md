@@ -277,24 +277,29 @@ sensors.stop(SensorType.ACCELEROMETER)
 ```kotlin
 val navigator = Toolkit.navigator()
 
-val openedSystem = navigator.navigateToSystemSettings()
-val openedApp = navigator.navigateToAppDetails()
-val openedNotifications = navigator.navigateToNotificationSettings()
-val openedUrl = navigator.navigateToUrl("https://example.com")
-val openedEmail = navigator.navigateToEmail(
+val openedSystem = navigator.openSystemSettings()
+val openedApp = navigator.openAppSettings()
+val openedNotifications = navigator.openNotificationSettings()
+val openedUrl = navigator.openUrl("https://example.com")
+val openedEmail = navigator.openEmail(
   to = "support@example.com",
   subject = "Feedback",
   body = "Describe the issue",
 )
-val openedDial = navigator.navigateToDial("10086")
-val openedSms = navigator.navigateToSms(
-  phone = "10086",
+val openedDial = navigator.openDial("10086")
+val openedSms = navigator.openSms(
+  phoneNumber = "10086",
   body = "Hello",
 )
-val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
+val openedStore = navigator.openAppStoreDetails(
+  AppStoreDetailsNavigationRequest(
+    androidPackageName = "com.example.app",
+    iosAppId = "123456789",
+  )
+)
 ```
 
-`navigateToAppStoreDetails(appId)` 在 Android 侧传包名，在 iOS 侧传 App Store 应用 ID。当平台无法处理请求时，跳转方法会返回 `false`。
+跳转方法会返回 `AppNavigationResult`。`Presented(destination)` 表示平台已接受跳转请求，`Failed(reason)` 会说明输入无效、目标不支持、没有可处理的应用、安全限制或展示失败。iOS 不提供系统总设置跳转，因此 `openSystemSettings()` 会返回 `UNSUPPORTED_DESTINATION`。通知设置在平台或系统版本没有专用入口时可能 fallback 到应用设置。`openAppStoreDetails(...)` 在 Android 侧使用 `androidPackageName`，在 iOS 侧使用 `iosAppId`。
 
 ## 系统分享
 

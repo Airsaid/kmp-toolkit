@@ -96,21 +96,26 @@ val snapshot = sensors.getSnapshot(SensorType.GYROSCOPE)]]></string>
   <string name="demo_app_navigator_title">App navigation</string>
   <string name="demo_app_navigator_description">Open system settings, app details, notification settings, email, dialer, SMS, app store details, and links.</string>
   <string name="demo_app_navigator_code"><![CDATA[val navigator = Toolkit.navigator()
-val openedSystem = navigator.navigateToSystemSettings()
-val openedApp = navigator.navigateToAppDetails()
-val openedNotifications = navigator.navigateToNotificationSettings()
-val openedEmail = navigator.navigateToEmail(
+val openedSystem = navigator.openSystemSettings()
+val openedApp = navigator.openAppSettings()
+val openedNotifications = navigator.openNotificationSettings()
+val openedEmail = navigator.openEmail(
   to = "support@example.com",
   subject = "Feedback",
   body = "Please describe your issue",
 )
-val openedDial = navigator.navigateToDial("10086")
-val openedSms = navigator.navigateToSms(
-  phone = "10086",
+val openedDial = navigator.openDial("10086")
+val openedSms = navigator.openSms(
+  phoneNumber = "10086",
   body = "Hello",
 )
-val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
-val openedUrl = navigator.navigateToUrl("https://example.com")]]></string>
+val openedStore = navigator.openAppStoreDetails(
+  AppStoreDetailsNavigationRequest(
+    androidPackageName = "com.example.app",
+    iosAppId = "123456789",
+  )
+)
+val openedUrl = navigator.openUrl("https://example.com")]]></string>
   <string name="demo_file_title">File picking and saving</string>
   <string name="demo_file_description">Pick a file, pick a directory, pick multiple files, and save a file.</string>
   <string name="demo_file_code"><![CDATA[val files = Toolkit.files()

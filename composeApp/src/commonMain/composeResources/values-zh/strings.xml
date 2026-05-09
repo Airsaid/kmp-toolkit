@@ -96,21 +96,26 @@ val snapshot = sensors.getSnapshot(SensorType.GYROSCOPE)]]></string>
   <string name="demo_app_navigator_title">应用级跳转</string>
   <string name="demo_app_navigator_description">跳转系统设置、应用详情、通知设置、邮件/拨号/短信、应用商店详情与链接。</string>
   <string name="demo_app_navigator_code"><![CDATA[val navigator = Toolkit.navigator()
-val openedSystem = navigator.navigateToSystemSettings()
-val openedApp = navigator.navigateToAppDetails()
-val openedNotifications = navigator.navigateToNotificationSettings()
-val openedEmail = navigator.navigateToEmail(
+val openedSystem = navigator.openSystemSettings()
+val openedApp = navigator.openAppSettings()
+val openedNotifications = navigator.openNotificationSettings()
+val openedEmail = navigator.openEmail(
   to = "support@example.com",
   subject = "反馈",
   body = "请描述你的问题",
 )
-val openedDial = navigator.navigateToDial("10086")
-val openedSms = navigator.navigateToSms(
-  phone = "10086",
+val openedDial = navigator.openDial("10086")
+val openedSms = navigator.openSms(
+  phoneNumber = "10086",
   body = "你好",
 )
-val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
-val openedUrl = navigator.navigateToUrl("https://example.com")]]></string>
+val openedStore = navigator.openAppStoreDetails(
+  AppStoreDetailsNavigationRequest(
+    androidPackageName = "com.example.app",
+    iosAppId = "123456789",
+  )
+)
+val openedUrl = navigator.openUrl("https://example.com")]]></string>
   <string name="demo_file_title">文件选择与保存</string>
   <string name="demo_file_description">选择文件、选择目录、多选文件与保存文件。</string>
   <string name="demo_file_code"><![CDATA[val files = Toolkit.files()
