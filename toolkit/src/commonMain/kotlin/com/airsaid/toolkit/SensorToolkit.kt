@@ -14,6 +14,8 @@ interface SensorToolkit {
 
   /**
    * Observes the given [type] sensor updates.
+   *
+   * Collection starts monitoring and cancellation stops monitoring for this collector.
    */
   fun observe(
     type: SensorType,
@@ -21,14 +23,12 @@ interface SensorToolkit {
   ): Flow<SensorEvent>
 
   /**
-   * Returns the latest sensor reading if available.
+   * Returns the latest sensor reading if available, or waits for one reading using [options].
    */
-  suspend fun getSnapshot(type: SensorType): SensorEvent?
-
-  /**
-   * Stops monitoring the specified sensor type.
-   */
-  fun stop(type: SensorType)
+  suspend fun getSnapshot(
+    type: SensorType,
+    options: SensorOptions = SensorOptions(),
+  ): SensorEvent?
 }
 
 /**

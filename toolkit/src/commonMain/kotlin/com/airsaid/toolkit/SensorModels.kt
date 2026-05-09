@@ -40,13 +40,13 @@ enum class SensorAccuracy {
  * Represents a single sensor reading.
  *
  * @property type The sensor type.
- * @property values Sensor values in platform-defined units.
+ * @property values Read-only sensor values in platform-defined units.
  * @property timestampNanos Timestamp in nanoseconds.
  * @property accuracy Reading accuracy.
  */
 data class SensorEvent(
   val type: SensorType,
-  val values: FloatArray,
+  val values: List<Float>,
   val timestampNanos: Long,
   val accuracy: SensorAccuracy,
 )
@@ -57,4 +57,5 @@ data class SensorEvent(
 data class SensorAvailability(
   val isAvailable: Boolean,
   val reason: String? = null,
+  val requiredPermission: String? = null,
 )

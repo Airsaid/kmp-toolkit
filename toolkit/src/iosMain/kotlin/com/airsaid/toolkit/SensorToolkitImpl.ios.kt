@@ -5,9 +5,10 @@ package com.airsaid.toolkit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flow
 import platform.CoreMotion.CMAccelerometerData
 import platform.CoreMotion.CMDeviceMotion
 import platform.CoreMotion.CMGyroData
@@ -18,12 +19,12 @@ import platform.Foundation.NSNotification
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
 import platform.Foundation.NSProcessInfo
+import platform.Foundation.NSRecursiveLock
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceProximityStateDidChangeNotification
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.useContents
-import kotlin.coroutines.resume
 
 /**
  * iOS implementation of [SensorToolkit] using CoreMotion.
@@ -33,6 +34,7 @@ internal class SensorToolkitImpl : SensorToolkit {
   private val motionManager = CMMotionManager()
   private val queue = NSOperationQueue()
   private val motionHub = DeviceMotionHub(motionManager, queue)
+  private val streamLock = NSLock()
   private val streams = mutableMapOf<SensorType, SensorStream>()
 
   override fun isAvailable(type: SensorType): SensorAvailability {
@@ -74,20 +76,26 @@ internal class SensorToolkitImpl : SensorToolkit {
     type: SensorType,
     options: SensorOptions,
   ): Flow<SensorEvent> {
+    if (!isAvailable(type).isAvailable) return emptyFlow()
     return streamFor(type).observe(options)
   }
 
-  override suspend fun getSnapshot(type: SensorType): SensorEvent? {
-    return streamFor(type).getSnapshot()
-  }
-
-  override fun stop(type: SensorType) {
-    streamFor(type).stop()
+  override suspend fun getSnapshot(
+    type: SensorType,
+    options: SensorOptions,
+  ): SensorEvent? {
+    if (!isAvailable(type).isAvailable) return null
+    return streamFor(type).getSnapshot(options)
   }
 
   private fun streamFor(type: SensorType): SensorStream {
-    return streams.getOrPut(type) {
-      SensorStream(type, motionManager, queue, motionHub)
+    streamLock.lock()
+    try {
+      return streams.getOrPut(type) {
+        SensorStream(type, motionManager, queue, motionHub)
+      }
+    } finally {
+      streamLock.unlock()
     }
   }
 
@@ -112,134 +120,87 @@ private class SensorStream(
     extraBufferCapacity = 64,
   )
 
-  private val lock = NSLock()
+  private val lock = NSRecursiveLock()
 
-  private var observerCount = 0
+  private val observerOptions = mutableMapOf<Long, SensorOptions>()
+  private var nextObserverId = 0L
   private var isMonitoring = false
-  private var isExplicitlyStopped = false
   private var activeOptions: SensorOptions? = null
   private var lastEvent: SensorEvent? = null
   private var proximityObserver: Any? = null
-  private var isSnapshotInProgress = false
-  private val snapshotWaiters = mutableListOf<(SensorEvent) -> Unit>()
 
   fun observe(options: SensorOptions): Flow<SensorEvent> {
-    return events
-      .onStart { onObserverStart(options) }
-      .onCompletion { onObserverStop() }
-      .conflate()
+    return flow {
+      val observerId = onObserverStart(options)
+      try {
+        val cached = withLock { lastEvent }
+        cached?.let { emit(it) }
+        if (cached == null && withLock { !isMonitoring }) return@flow
+        emitAll(events)
+      } finally {
+        onObserverStop(observerId)
+      }
+    }.conflate()
   }
 
-  suspend fun getSnapshot(): SensorEvent? {
-    val cached = lastEvent
+  suspend fun getSnapshot(options: SensorOptions): SensorEvent? {
+    val cached = withLock { lastEvent }
     if (cached != null) return cached
 
-    if (!type.isSupportedOnIos()) return null
+    return observe(options).firstOrNull()
+  }
 
-    return suspendCancellableCoroutine { continuation ->
-      val waiter: (SensorEvent) -> Unit = { event ->
-        continuation.resume(event)
-      }
+  private fun onObserverStart(options: SensorOptions): Long {
+    withLock {
+      val observerId = nextObserverId++
+      observerOptions[observerId] = options
+      restartMonitoringIfNeeded()
+      return observerId
+    }
+  }
 
-      var shouldStartSnapshot = false
-      var isCompleted = false
-      withLock {
-        val cachedEvent = lastEvent
-        if (cachedEvent != null) {
-          continuation.resume(cachedEvent)
-          isCompleted = true
-          return@withLock
-        }
-
-        snapshotWaiters.add(waiter)
+  private fun onObserverStop(observerId: Long) {
+    withLock {
+      observerOptions.remove(observerId)
+      if (observerOptions.isEmpty()) {
         if (isMonitoring) {
-          return@withLock
+          stopMonitoringInternal()
         }
-
-        if (isSnapshotInProgress) {
-          return@withLock
-        }
-
-        isSnapshotInProgress = true
-        shouldStartSnapshot = true
-      }
-
-      if (isCompleted) {
-        return@suspendCancellableCoroutine
-      }
-
-      if (shouldStartSnapshot) {
-        val intervalSeconds = (activeOptions ?: SensorOptions()).toUpdateIntervalSeconds()
-        startUpdates(intervalSeconds) { event ->
-          lastEvent = event
-          val callbacks = drainSnapshotWaiters()
-          callbacks.forEach { it(event) }
-          stopUpdates()
-          withLock {
-            isSnapshotInProgress = false
-          }
-        }
-      }
-
-      continuation.invokeOnCancellation {
-        val shouldStopSnapshot = withLock {
-          snapshotWaiters.remove(waiter)
-          if (!isMonitoring && isSnapshotInProgress && snapshotWaiters.isEmpty()) {
-            isSnapshotInProgress = false
-            return@withLock true
-          }
-          false
-        }
-
-        if (shouldStopSnapshot) {
-          stopUpdates()
-        }
+        activeOptions = null
+      } else {
+        restartMonitoringIfNeeded()
       }
     }
   }
 
-  fun stop() {
-    withLock {
-      isExplicitlyStopped = true
-      if (isMonitoring) {
-        stopMonitoringInternal()
-      }
+  private fun restartMonitoringIfNeeded() {
+    val nextOptions = observerOptions.values.effectiveOptions()
+    if (nextOptions == null) {
+      return
     }
-  }
 
-  private fun onObserverStart(options: SensorOptions) {
-    withLock {
-      observerCount++
-      isExplicitlyStopped = false
-      val shouldRestart = activeOptions != null && activeOptions != options
-      activeOptions = options
-      if (!isMonitoring) {
-        startMonitoringInternal(options)
-      } else if (shouldRestart) {
-        stopMonitoringInternal()
-        startMonitoringInternal(options)
-      }
+    if (!isMonitoring) {
+      activeOptions = nextOptions
+      startMonitoringInternal(nextOptions)
+      return
     }
-  }
 
-  private fun onObserverStop() {
-    withLock {
-      observerCount = (observerCount - 1).coerceAtLeast(0)
-      if (observerCount == 0 && isMonitoring) {
-        stopMonitoringInternal()
-      }
+    if (activeOptions != nextOptions) {
+      stopMonitoringInternal()
+      activeOptions = nextOptions
+      startMonitoringInternal(nextOptions)
     }
   }
 
   private fun startMonitoringInternal(options: SensorOptions) {
-    if (isMonitoring || isExplicitlyStopped) return
+    if (isMonitoring) return
     if (!type.isSupportedOnIos()) return
 
     val intervalSeconds = options.toUpdateIntervalSeconds()
     startUpdates(intervalSeconds) { event ->
-      lastEvent = event
-      val callbacks = drainSnapshotWaiters()
-      callbacks.forEach { it(event) }
+      withLock {
+        lastEvent = event
+      }
       events.tryEmit(event)
     }
     isMonitoring = true
@@ -352,23 +313,11 @@ private class SensorStream(
     onEvent(
       SensorEvent(
         type = type,
-        values = floatArrayOf(if (isClose) 1f else 0f),
+        values = listOf(if (isClose) 1f else 0f),
         timestampNanos = currentTimestampNanos(),
         accuracy = SensorAccuracy.UNRELIABLE,
       )
     )
-  }
-
-  private fun drainSnapshotWaiters(): List<(SensorEvent) -> Unit> {
-    return withLock {
-      if (snapshotWaiters.isEmpty()) {
-        return@withLock emptyList()
-      }
-      isSnapshotInProgress = false
-      val callbacks = snapshotWaiters.toList()
-      snapshotWaiters.clear()
-      callbacks
-    }
   }
 
   private inline fun <T> withLock(block: () -> T): T {
@@ -427,7 +376,7 @@ private class DeviceMotionHub(
   }
 
   private fun dispatch(data: CMDeviceMotion) {
-    val snapshot = observers.toMap()
+    val snapshot = withLock { observers.toMap() }
     snapshot.forEach { (type, callback) ->
       callback(data.toSensorEvent(type))
     }
@@ -484,8 +433,25 @@ private fun SensorOptions.toUpdateIntervalSeconds(): Double {
   }
 }
 
+private fun Collection<SensorOptions>.effectiveOptions(): SensorOptions? {
+  if (isEmpty()) return null
+
+  return reduce { current, next ->
+    val currentUpdateInterval = current.toUpdateIntervalSeconds()
+    val nextUpdateInterval = next.toUpdateIntervalSeconds()
+    val fastest = if (nextUpdateInterval < currentUpdateInterval) next else current
+
+    fastest.copy(
+      maxReportLatencyMillis = minOf(
+        current.maxReportLatencyMillis,
+        next.maxReportLatencyMillis,
+      ),
+    )
+  }
+}
+
 private fun CMAccelerometerData.toSensorEvent(type: SensorType): SensorEvent {
-  val values = acceleration.toFloatArray()
+  val values = acceleration.toFloatList()
   return SensorEvent(
     type = type,
     values = values,
@@ -495,7 +461,7 @@ private fun CMAccelerometerData.toSensorEvent(type: SensorType): SensorEvent {
 }
 
 private fun CMGyroData.toSensorEvent(type: SensorType): SensorEvent {
-  val values = rotationRate.toFloatArray()
+  val values = rotationRate.toFloatList()
   return SensorEvent(
     type = type,
     values = values,
@@ -505,7 +471,7 @@ private fun CMGyroData.toSensorEvent(type: SensorType): SensorEvent {
 }
 
 private fun CMMagnetometerData.toSensorEvent(type: SensorType): SensorEvent {
-  val values = magneticField.toFloatArray()
+  val values = magneticField.toFloatList()
   return SensorEvent(
     type = type,
     values = values,
@@ -519,7 +485,7 @@ private fun CMDeviceMotion.toSensorEvent(type: SensorType): SensorEvent {
     SensorType.GRAVITY -> {
       SensorEvent(
         type = type,
-        values = gravity.toFloatArray(),
+        values = gravity.toFloatList(),
         timestampNanos = (timestamp * 1_000_000_000.0).toLong(),
         accuracy = SensorAccuracy.UNRELIABLE,
       )
@@ -527,7 +493,7 @@ private fun CMDeviceMotion.toSensorEvent(type: SensorType): SensorEvent {
     SensorType.LINEAR_ACCELERATION -> {
       SensorEvent(
         type = type,
-        values = userAcceleration.toFloatArray(),
+        values = userAcceleration.toFloatList(),
         timestampNanos = (timestamp * 1_000_000_000.0).toLong(),
         accuracy = SensorAccuracy.UNRELIABLE,
       )
@@ -535,7 +501,7 @@ private fun CMDeviceMotion.toSensorEvent(type: SensorType): SensorEvent {
     SensorType.ROTATION_VECTOR -> {
       SensorEvent(
         type = type,
-        values = attitude.quaternion.toFloatArray(),
+        values = attitude.quaternion.toFloatList(),
         timestampNanos = (timestamp * 1_000_000_000.0).toLong(),
         accuracy = SensorAccuracy.UNRELIABLE,
       )
@@ -544,7 +510,7 @@ private fun CMDeviceMotion.toSensorEvent(type: SensorType): SensorEvent {
       val attitude = attitude
       SensorEvent(
         type = type,
-        values = floatArrayOf(
+        values = listOf(
           attitude.roll.toFloat(),
           attitude.pitch.toFloat(),
           attitude.yaw.toFloat(),
@@ -560,9 +526,9 @@ private fun currentTimestampNanos(): Long {
   return (NSProcessInfo.processInfo.systemUptime * 1_000_000_000.0).toLong()
 }
 
-private fun CValue<platform.CoreMotion.CMAcceleration>.toFloatArray(): FloatArray {
+private fun CValue<platform.CoreMotion.CMAcceleration>.toFloatList(): List<Float> {
   return useContents {
-    floatArrayOf(
+    listOf(
       x.toFloat(),
       y.toFloat(),
       z.toFloat(),
@@ -570,9 +536,9 @@ private fun CValue<platform.CoreMotion.CMAcceleration>.toFloatArray(): FloatArra
   }
 }
 
-private fun CValue<platform.CoreMotion.CMRotationRate>.toFloatArray(): FloatArray {
+private fun CValue<platform.CoreMotion.CMRotationRate>.toFloatList(): List<Float> {
   return useContents {
-    floatArrayOf(
+    listOf(
       x.toFloat(),
       y.toFloat(),
       z.toFloat(),
@@ -580,9 +546,9 @@ private fun CValue<platform.CoreMotion.CMRotationRate>.toFloatArray(): FloatArra
   }
 }
 
-private fun CValue<platform.CoreMotion.CMMagneticField>.toFloatArray(): FloatArray {
+private fun CValue<platform.CoreMotion.CMMagneticField>.toFloatList(): List<Float> {
   return useContents {
-    floatArrayOf(
+    listOf(
       x.toFloat(),
       y.toFloat(),
       z.toFloat(),
@@ -590,9 +556,9 @@ private fun CValue<platform.CoreMotion.CMMagneticField>.toFloatArray(): FloatArr
   }
 }
 
-private fun CValue<platform.CoreMotion.CMQuaternion>.toFloatArray(): FloatArray {
+private fun CValue<platform.CoreMotion.CMQuaternion>.toFloatList(): List<Float> {
   return useContents {
-    floatArrayOf(
+    listOf(
       x.toFloat(),
       y.toFloat(),
       z.toFloat(),

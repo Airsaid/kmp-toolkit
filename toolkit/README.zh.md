@@ -253,6 +253,7 @@ if (availability.isAvailable) {
       type = SensorType.ACCELEROMETER,
       options = SensorOptions(
         samplingRateHz = 50,
+        maxReportLatencyMillis = 200,
       ),
     ).collect { event ->
       val x = event.values[0]
@@ -264,11 +265,9 @@ if (availability.isAvailable) {
 
 val snapshot = sensors.getSnapshot(SensorType.GYROSCOPE)
 val gyroValues = snapshot?.values
-
-sensors.stop(SensorType.ACCELEROMETER)
 ```
 
-共享模型包含多种传感器类型。平台可用性不同，监听前请先调用 `isAvailable(...)`。iOS 侧优先覆盖加速度计、陀螺仪、磁力计、设备姿态与距离传感器。
+不再需要更新时取消正在收集的协程。共享模型包含多种传感器类型。平台可用性不同，监听前请先调用 `isAvailable(...)`。当 `requiredPermission` 有值时，请先请求对应平台权限。iOS 侧优先覆盖加速度计、陀螺仪、磁力计、设备姿态与距离传感器。
 
 ## 应用级跳转
 

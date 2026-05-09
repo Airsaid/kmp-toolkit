@@ -11,7 +11,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -90,12 +89,6 @@ fun ToolkitSensorScreen(modifier: Modifier = Modifier) {
     }
   }
 
-  DisposableEffect(selectedType) {
-    onDispose {
-      toolkit.stop(selectedType)
-    }
-  }
-
   ToolkitDemoPage(
     descriptionRes = item.descriptionRes,
     codeRes = item.codeRes,
@@ -137,7 +130,6 @@ fun ToolkitSensorScreen(modifier: Modifier = Modifier) {
       }
       OutlinedButton(onClick = {
         isObserving = false
-        toolkit.stop(selectedType)
       }) {
         Text(text = stringResource(Res.string.action_stop_monitoring))
       }
