@@ -161,12 +161,14 @@ println(device.manufacturer.manufacturer)
 println(device.manufacturer.brand)
 println(device.deviceType.isTablet)
 println(device.deviceType.isEmulator)
+println(device.window?.widthPx)
+println(device.window?.heightPx)
 println(device.screen.widthPx)
 println(device.screen.heightPx)
 println(device.screen.density)
 println(device.timeZone.id)
 println(device.timeZone.offsetMinutes)
-println(device.locale.current.tag)
+println(device.locale.current.languageTag)
 println(device.locale.preferred)]]></string>
   <string name="demo_platform_title">平台判断</string>
   <string name="demo_platform_description">在 common 代码中判断当前平台。</string>
@@ -338,10 +340,12 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="device_system_version_code">系统版本号</string>
   <string name="device_manufacturer">厂商</string>
   <string name="device_brand">品牌</string>
-  <string name="device_tablet">平板</string>
-  <string name="device_emulator">模拟器</string>
+  <string name="device_tablet">平板启发式判断</string>
+  <string name="device_emulator">模拟器启发式判断</string>
+  <string name="device_window_px">窗口 (px)</string>
+  <string name="device_window_logical">窗口逻辑尺寸</string>
   <string name="device_screen_px">屏幕 (px)</string>
-  <string name="device_screen_dp">屏幕 (dp)</string>
+  <string name="device_screen_logical">屏幕逻辑尺寸</string>
   <string name="device_density">密度</string>
   <string name="device_orientation">方向</string>
   <string name="device_landscape">横屏</string>

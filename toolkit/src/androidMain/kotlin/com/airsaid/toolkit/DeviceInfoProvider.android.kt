@@ -1,8 +1,11 @@
 package com.airsaid.toolkit
 
+import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Rect
 import android.os.Build
+import androidx.window.layout.WindowMetricsCalculator
 import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.roundToInt
@@ -28,21 +31,6 @@ internal actual object DeviceInfoProvider {
     val resources = requireContext().resources
     val configuration = resources.configuration
     val displayMetrics = resources.displayMetrics
-
-    val widthPx = displayMetrics.widthPixels
-    val heightPx = displayMetrics.heightPixels
-    val density = displayMetrics.density
-    val densityDpi = displayMetrics.densityDpi
-    val widthDp = if (configuration.screenWidthDp != Configuration.SCREEN_WIDTH_DP_UNDEFINED) {
-      configuration.screenWidthDp
-    } else {
-      (widthPx / density).roundToInt()
-    }
-    val heightDp = if (configuration.screenHeightDp != Configuration.SCREEN_HEIGHT_DP_UNDEFINED) {
-      configuration.screenHeightDp
-    } else {
-      (heightPx / density).roundToInt()
-    }
     val currentLocale = resolveCurrentLocale(configuration)
     val preferredLocales = buildPreferredLocales(configuration, currentLocale)
 
@@ -62,14 +50,18 @@ internal actual object DeviceInfoProvider {
         isTablet = isTablet(configuration),
         isEmulator = isEmulator(),
       ),
-      screen = ScreenInfo(
-        widthPx = widthPx,
-        heightPx = heightPx,
-        widthDp = widthDp,
-        heightDp = heightDp,
-        density = density,
-        densityDpi = densityDpi,
-        isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE,
+      window = resolveCurrentWindowDisplayInfo(ActivityLifecycleRegistry.getCurrentActivity()),
+      screen = buildAndroidDisplayInfo(
+        widthPx = displayMetrics.widthPixels,
+        heightPx = displayMetrics.heightPixels,
+        density = displayMetrics.density,
+        densityDpi = resolveDensityDpi(configuration, displayMetrics.densityDpi),
+        widthLogical = configuration.screenWidthDp.takeUnless {
+          it == Configuration.SCREEN_WIDTH_DP_UNDEFINED
+        },
+        heightLogical = configuration.screenHeightDp.takeUnless {
+          it == Configuration.SCREEN_HEIGHT_DP_UNDEFINED
+        },
       ),
       timeZone = TimeZoneInfo(
         id = timeZone.id.orEmpty(),
@@ -98,7 +90,7 @@ private fun buildPreferredLocales(
   val localeList = configuration.locales
   val localeInfos = (0 until localeList.size()).map { index ->
     val locale = localeList[index]
-    buildLocaleInfo(locale.language, locale.country)
+    buildLocaleInfoFromTag(locale.toLanguageTag())
   }
   return if (localeInfos.isNotEmpty()) localeInfos else listOf(currentLocale)
 }
@@ -110,7 +102,59 @@ private fun resolveCurrentLocale(configuration: Configuration): LocaleInfo {
   } else {
     localeList[0]
   }
-  return buildLocaleInfo(locale.language, locale.country)
+  return buildLocaleInfoFromTag(locale.toLanguageTag())
+}
+
+internal fun resolveCurrentWindowDisplayInfo(activity: Activity?): DisplayInfo? {
+  if (activity == null) return null
+  val windowMetrics = WindowMetricsCalculator
+    .getOrCreate()
+    .computeCurrentWindowMetrics(activity)
+  val configuration = activity.resources.configuration
+  val displayMetrics = activity.resources.displayMetrics
+  val densityDpi = resolveDensityDpi(configuration, displayMetrics.densityDpi)
+  return buildAndroidDisplayInfo(
+    bounds = windowMetrics.bounds,
+    densityDpi = densityDpi,
+  )
+}
+
+internal fun buildAndroidDisplayInfo(
+  bounds: Rect,
+  densityDpi: Int,
+): DisplayInfo {
+  val density = densityDpi / 160f
+  return buildAndroidDisplayInfo(
+    widthPx = bounds.width(),
+    heightPx = bounds.height(),
+    density = density,
+    densityDpi = densityDpi,
+  )
+}
+
+internal fun buildAndroidDisplayInfo(
+  widthPx: Int,
+  heightPx: Int,
+  density: Float,
+  densityDpi: Int,
+  widthLogical: Int? = null,
+  heightLogical: Int? = null,
+): DisplayInfo {
+  val safeDensity = density.takeIf { it > 0f } ?: 1f
+  val safeDensityDpi = densityDpi.takeIf { it > 0 } ?: (safeDensity * 160f).roundToInt()
+  return DisplayInfo(
+    widthPx = widthPx,
+    heightPx = heightPx,
+    widthLogical = widthLogical ?: (widthPx / safeDensity).roundToInt(),
+    heightLogical = heightLogical ?: (heightPx / safeDensity).roundToInt(),
+    density = safeDensity,
+    densityDpi = safeDensityDpi,
+    isLandscape = widthPx >= heightPx,
+  )
+}
+
+private fun resolveDensityDpi(configuration: Configuration, fallbackDensityDpi: Int): Int {
+  return configuration.densityDpi.takeIf { it > 0 } ?: fallbackDensityDpi
 }
 
 private fun isTablet(configuration: Configuration): Boolean {

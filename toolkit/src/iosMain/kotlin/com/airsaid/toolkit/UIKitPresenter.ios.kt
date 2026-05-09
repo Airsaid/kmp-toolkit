@@ -7,10 +7,13 @@ import platform.UIKit.UITabBarController
 import platform.UIKit.UIViewController
 
 internal fun resolvePresenter(): UIViewController? {
-  val application = UIApplication.sharedApplication
-  val keyWindow = application.keyWindow ?: firstKeyWindow(application.windows)
-    ?: return null
+  val keyWindow = resolveKeyWindow() ?: return null
   return topViewController(keyWindow.rootViewController)
+}
+
+internal fun resolveKeyWindow(): UIWindow? {
+  val application = UIApplication.sharedApplication
+  return application.keyWindow ?: firstKeyWindow(application.windows)
 }
 
 private fun firstKeyWindow(windows: List<*>?): UIWindow? {
