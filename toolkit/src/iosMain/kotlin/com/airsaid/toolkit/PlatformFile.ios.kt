@@ -5,6 +5,7 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.NSFileSize
 import platform.Foundation.NSURL
 import platform.Foundation.pathExtension
+import platform.UniformTypeIdentifiers.UTType
 
 /**
  * iOS implementation of [PlatformFile].
@@ -29,15 +30,16 @@ actual class PlatformFile internal constructor(
     get() = url.path
 
   @OptIn(ExperimentalForeignApi::class)
-  actual suspend fun size(): Long {
-    val pathValue = url.path ?: return 0L
+  actual suspend fun size(): Long? {
+    val pathValue = url.path ?: return null
     val attrs = NSFileManager.defaultManager.attributesOfItemAtPath(pathValue, null)
-    val size = attrs?.get(NSFileSize) as? Number ?: return 0L
+    val size = attrs?.get(NSFileSize) as? Number ?: return null
     return size.toLong()
   }
 
   actual suspend fun mimeType(): String? {
-    return null
+    val fileExtension = extension.takeIf { it.isNotBlank() } ?: return null
+    return UTType.typeWithFilenameExtension(fileExtension)?.preferredMIMEType
   }
 
   @OptIn(ExperimentalForeignApi::class)

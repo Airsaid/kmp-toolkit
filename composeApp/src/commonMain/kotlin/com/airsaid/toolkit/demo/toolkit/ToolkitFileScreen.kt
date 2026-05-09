@@ -20,16 +20,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.airsaid.toolkit.DirectoryPickerOptions
-import com.airsaid.toolkit.FilePickerMode
+import com.airsaid.toolkit.FileCreateOptions
 import com.airsaid.toolkit.FilePickerOptions
-import com.airsaid.toolkit.FileSaveOptions
 import com.airsaid.toolkit.PlatformFile
 import com.airsaid.toolkit.Toolkit
 import com.airsaid.toolkit.demo.resources.Res
+import com.airsaid.toolkit.demo.resources.action_create_file
 import com.airsaid.toolkit.demo.resources.action_pick_directory
 import com.airsaid.toolkit.demo.resources.action_pick_file
 import com.airsaid.toolkit.demo.resources.action_pick_files
-import com.airsaid.toolkit.demo.resources.action_save_file
+import com.airsaid.toolkit.demo.resources.file_created_file
 import com.airsaid.toolkit.demo.resources.file_info_format
 import com.airsaid.toolkit.demo.resources.file_info_read_failed
 import com.airsaid.toolkit.demo.resources.file_info_status
@@ -37,12 +37,11 @@ import com.airsaid.toolkit.demo.resources.file_message_with_name
 import com.airsaid.toolkit.demo.resources.file_multi_select_result
 import com.airsaid.toolkit.demo.resources.file_no_directory_selected
 import com.airsaid.toolkit.demo.resources.file_no_file_selected
+import com.airsaid.toolkit.demo.resources.file_not_created
 import com.airsaid.toolkit.demo.resources.file_not_run
-import com.airsaid.toolkit.demo.resources.file_not_saved
 import com.airsaid.toolkit.demo.resources.file_picker_title_directory
 import com.airsaid.toolkit.demo.resources.file_picker_title_file
 import com.airsaid.toolkit.demo.resources.file_picker_title_files
-import com.airsaid.toolkit.demo.resources.file_saved_file
 import com.airsaid.toolkit.demo.resources.file_selected_count
 import com.airsaid.toolkit.demo.resources.file_selected_directory
 import com.airsaid.toolkit.demo.resources.file_selected_file
@@ -150,8 +149,8 @@ fun ToolkitFileScreen(modifier: Modifier = Modifier) {
           val picked = fileToolkit.pickFiles(
             FilePickerOptions(
               title = pickFilesTitle,
-              mode = FilePickerMode.Multiple(maxItems = 3),
-            )
+            ),
+            maxItems = 3,
           )
           updateMultipleSelection(picked)
         }
@@ -174,20 +173,20 @@ fun ToolkitFileScreen(modifier: Modifier = Modifier) {
       }
       Button(onClick = {
         launchSafely {
-          val saved = fileToolkit.saveFile(
-            FileSaveOptions(
+          val created = fileToolkit.createFile(
+            FileCreateOptions(
               suggestedName = "document",
               extension = "txt",
             )
           )
           updateSingleSelection(
-            file = saved,
-            selectedMessage = Res.string.file_saved_file,
-            emptyMessage = Res.string.file_not_saved,
+            file = created,
+            selectedMessage = Res.string.file_created_file,
+            emptyMessage = Res.string.file_not_created,
           )
         }
       }) {
-        Text(text = stringResource(Res.string.action_save_file))
+        Text(text = stringResource(Res.string.action_create_file))
       }
     }
     Column(
@@ -229,7 +228,7 @@ private sealed interface FileMessage {
 
 private data class FileInfo(
   val name: String,
-  val size: Long,
+  val size: String,
   val mimeType: String,
   val exists: Boolean,
   val isDirectory: Boolean,
@@ -279,7 +278,7 @@ private fun FileError.displayText(): String {
 private suspend fun buildFileInfo(file: PlatformFile): FileInfo {
   return FileInfo(
     name = file.name,
-    size = file.size(),
+    size = file.size()?.toString() ?: "-",
     mimeType = file.mimeType() ?: "-",
     exists = file.exists(),
     isDirectory = file.isDirectory(),
