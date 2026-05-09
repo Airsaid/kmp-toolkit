@@ -67,7 +67,7 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
       - name: Build toolkit + demo (Android)
-        run: ./gradlew :toolkit:assemble :toolkit:testAndroidHostTest :toolkit:lint :composeApp:lintDebug :composeApp:assembleDebug -Pkotlin.native.ignoreDisabledTargets=true
+        run: ./gradlew :toolkit:assemble :toolkit:testAndroidHostTest :toolkit:lint :composeApp:lintDebug :composeApp:assembleDebug --no-parallel -Pkotlin.native.ignoreDisabledTargets=true
 
   ios:
     runs-on: macos-latest
