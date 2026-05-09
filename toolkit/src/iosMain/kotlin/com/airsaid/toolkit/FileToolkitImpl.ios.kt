@@ -11,16 +11,16 @@ internal class FileToolkitImpl(
     return picker.openFile(options)
   }
 
-  override suspend fun pickFiles(options: FilePickerOptions): List<PlatformFile> {
-    return picker.openFiles(options)
+  override suspend fun pickFiles(options: FilePickerOptions, maxItems: Int?): List<PlatformFile> {
+    return picker.openFiles(options, maxItems)
   }
 
   override suspend fun pickDirectory(options: DirectoryPickerOptions): PlatformFile? {
     return picker.openDirectory(options)
   }
 
-  override suspend fun saveFile(options: FileSaveOptions): PlatformFile? {
-    return picker.saveFile(options)
+  override suspend fun createFile(options: FileCreateOptions): PlatformFile? {
+    return picker.createFile(options)
   }
 }
 

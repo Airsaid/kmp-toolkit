@@ -116,8 +116,8 @@ val openedStore = navigator.openAppStoreDetails(
   )
 )
 val openedUrl = navigator.openUrl("https://example.com")]]></string>
-  <string name="demo_file_title">File picking and saving</string>
-  <string name="demo_file_description">Pick a file, pick a directory, pick multiple files, and save a file.</string>
+  <string name="demo_file_title">File picking and creation</string>
+  <string name="demo_file_description">Pick a file, pick a directory, pick multiple files, and create a writable file target.</string>
   <string name="demo_file_code"><![CDATA[val files = Toolkit.files()
 val picked = files.pickFile(
   FilePickerOptions(
@@ -128,14 +128,14 @@ val picked = files.pickFile(
 val selected = files.pickFiles(
   FilePickerOptions(
     title = "Pick files",
-    mode = FilePickerMode.Multiple(maxItems = 3),
-  )
+  ),
+  maxItems = 3,
 )
 val directory = files.pickDirectory(
   DirectoryPickerOptions(title = "Pick directory")
 )
-val saved = files.saveFile(
-  FileSaveOptions(
+val created = files.createFile(
+  FileCreateOptions(
     suggestedName = "document",
     extension = "txt",
   )
@@ -300,14 +300,14 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="action_pick_file">Pick file</string>
   <string name="action_pick_files">Pick files</string>
   <string name="action_pick_directory">Pick directory</string>
-  <string name="action_save_file">Save file</string>
+  <string name="action_create_file">Create file</string>
   <string name="file_not_run">Not run</string>
   <string name="file_selected_file">Selected file</string>
   <string name="file_selected_directory">Selected directory</string>
-  <string name="file_saved_file">Saved file</string>
+  <string name="file_created_file">Created file</string>
   <string name="file_no_file_selected">No file selected</string>
   <string name="file_no_directory_selected">No directory selected</string>
-  <string name="file_not_saved">No file saved</string>
+  <string name="file_not_created">No file created</string>
   <string name="file_message_with_name">%1$s: %2$s</string>
   <plurals name="file_selected_count">
     <item quantity="one">Selected %1$d file</item>

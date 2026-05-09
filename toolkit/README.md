@@ -342,7 +342,7 @@ val result = shareToolkit.share(
 
 ## File Picking and Saving
 
-Use `Toolkit.files()` to open platform file pickers, directory pickers, and save destinations. Android uses the Storage Access Framework, and iOS uses `UIDocumentPicker`.
+Use `Toolkit.files()` to open platform file pickers, directory pickers, and create writable file targets. Android uses the Storage Access Framework, and iOS uses `UIDocumentPicker`.
 
 ```kotlin
 val files = Toolkit.files()
@@ -358,21 +358,23 @@ val selected = files.pickFiles(
   FilePickerOptions(
     title = "Choose images",
     type = PlatformFileType.Image,
-    mode = FilePickerMode.Multiple(maxItems = 5),
-  )
+  ),
+  maxItems = 5,
 )
 
 val directory = files.pickDirectory(
   DirectoryPickerOptions(title = "Choose a folder")
 )
 
-val saved = files.saveFile(
-  FileSaveOptions(
+val created = files.createFile(
+  FileCreateOptions(
     suggestedName = "document",
     extension = "txt",
   )
 )
 ```
+
+`createFile` only creates or selects a writable target. Write content to the returned platform file with platform I/O APIs.
 
 `PlatformFile` exposes common metadata and scoped access helpers:
 
@@ -382,7 +384,7 @@ if (file != null) {
   val name = file.name
   val extension = file.extension
   val path = file.path
-  val size = file.size()
+  val size = file.size() // null when the platform cannot provide a size.
   val mimeType = file.mimeType()
   val exists = file.exists()
 }

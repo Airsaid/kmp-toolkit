@@ -6,6 +6,8 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import androidx.documentfile.provider.DocumentFile
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Android implementation of [PlatformFile].
@@ -16,8 +18,10 @@ actual class PlatformFile internal constructor(
 ) {
 
   private val documentFile: DocumentFile? by lazy {
-    val doc = DocumentFile.fromSingleUri(context, uri)
-    doc ?: DocumentFile.fromTreeUri(context, uri)
+    when (resolveDocumentFileUriType(uri)) {
+      DocumentFileUriType.TREE -> DocumentFile.fromTreeUri(context, uri)
+      DocumentFileUriType.SINGLE -> DocumentFile.fromSingleUri(context, uri)
+    }
   }
 
   actual val name: String
@@ -35,29 +39,30 @@ actual class PlatformFile internal constructor(
   actual val absolutePath: String?
     get() = null
 
-  actual suspend fun size(): Long {
+  actual suspend fun size(): Long? = withContext(Dispatchers.IO) {
+    val queriedSize = querySize()
+    if (queriedSize != null) return@withContext queriedSize
     val documentSize = documentFile?.length()
-    if (documentSize != null && documentSize >= 0L) return documentSize
-    return querySize()
+    documentSize?.takeIf { it > 0L }
   }
 
-  actual suspend fun mimeType(): String? {
+  actual suspend fun mimeType(): String? = withContext(Dispatchers.IO) {
     val type = documentFile?.type
-    return type ?: context.contentResolver.getType(uri)
+    type ?: runCatching { context.contentResolver.getType(uri) }.getOrNull()
   }
 
-  actual suspend fun exists(): Boolean {
-    return documentFile?.exists() ?: run {
+  actual suspend fun exists(): Boolean = withContext(Dispatchers.IO) {
+    documentFile?.exists() ?: run {
       queryDisplayName() != null
     }
   }
 
-  actual suspend fun isDirectory(): Boolean {
+  actual suspend fun isDirectory(): Boolean = withContext(Dispatchers.IO) {
     val document = documentFile
-    if (document != null) return document.isDirectory
+    if (document != null) return@withContext document.isDirectory
     val resolver = context.contentResolver
-    val type = resolver.getType(uri)
-    return type == DocumentsContract.Document.MIME_TYPE_DIR
+    val type = runCatching { resolver.getType(uri) }.getOrNull()
+    type == DocumentsContract.Document.MIME_TYPE_DIR
   }
 
   actual suspend fun <T> withScopedAccess(block: suspend (PlatformFile) -> T): T {
@@ -68,18 +73,45 @@ actual class PlatformFile internal constructor(
     return queryColumn(OpenableColumns.DISPLAY_NAME)?.takeIf { it.isNotBlank() }
   }
 
-  private fun querySize(): Long {
-    return queryColumn(OpenableColumns.SIZE)?.toLongOrNull() ?: 0L
+  private fun querySize(): Long? {
+    return queryColumn(OpenableColumns.SIZE)?.toLongOrNull()
   }
 
   private fun queryColumn(column: String): String? {
     val resolver: ContentResolver = context.contentResolver
-    val cursor = resolver.query(uri, arrayOf(column), null, null, null) ?: return null
+    val cursor = try {
+      resolver.query(uri, arrayOf(column), null, null, null) ?: return null
+    } catch (_: SecurityException) {
+      return null
+    } catch (_: IllegalArgumentException) {
+      return null
+    }
     cursor.use {
       if (!it.moveToFirst()) return null
       val index = it.getColumnIndex(column)
       if (index < 0) return null
-      return it.getString(index)
+      return runCatching { it.getString(index) }.getOrNull()
     }
+  }
+}
+
+internal enum class DocumentFileUriType {
+  SINGLE,
+  TREE,
+}
+
+internal fun resolveDocumentFileUriType(uri: Uri): DocumentFileUriType {
+  return if (DocumentsContract.isTreeUri(uri) || resolveDocumentFileUriType(uri.pathSegments) == DocumentFileUriType.TREE) {
+    DocumentFileUriType.TREE
+  } else {
+    DocumentFileUriType.SINGLE
+  }
+}
+
+internal fun resolveDocumentFileUriType(pathSegments: List<String>): DocumentFileUriType {
+  return if (pathSegments.firstOrNull() == "tree") {
+    DocumentFileUriType.TREE
+  } else {
+    DocumentFileUriType.SINGLE
   }
 }

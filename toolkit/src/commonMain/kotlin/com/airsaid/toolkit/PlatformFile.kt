@@ -11,7 +11,7 @@ expect class PlatformFile {
   val path: String?
   val absolutePath: String?
 
-  suspend fun size(): Long
+  suspend fun size(): Long?
   suspend fun mimeType(): String?
   suspend fun exists(): Boolean
   suspend fun isDirectory(): Boolean

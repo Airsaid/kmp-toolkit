@@ -33,7 +33,7 @@ internal class AndroidFilePicker(
     return PlatformFile(context, uri)
   }
 
-  suspend fun openFiles(options: FilePickerOptions): List<PlatformFile> {
+  suspend fun openFiles(options: FilePickerOptions, maxItems: Int?): List<PlatformFile> {
     val mimeTypes = options.type.resolveMimeTypes()
     val params = OpenDocumentParams(
       mimeTypes = mimeTypes,
@@ -42,7 +42,7 @@ internal class AndroidFilePicker(
     )
     val result = launch(OpenMultipleDocumentsContract(), params)
     val uris = result?.uris.orEmpty()
-    val limited = options.mode.limit(uris)
+    val limited = limitFileSelection(uris, maxItems)
     limited.forEach { persistPermission(it, result?.grantFlags ?: 0) }
     return limited.map { PlatformFile(context, it) }
   }
@@ -58,8 +58,8 @@ internal class AndroidFilePicker(
     return PlatformFile(context, uri)
   }
 
-  suspend fun saveFile(options: FileSaveOptions): PlatformFile? {
-    val name = buildFileName(options.suggestedName, options.extension)
+  suspend fun createFile(options: FileCreateOptions): PlatformFile? {
+    val name = buildPlatformFileName(options.suggestedName, options.extension)
     val mimeType = options.mimeType ?: options.extension?.let { extensionToMimeType(it) }
     val params = CreateDocumentParams(
       fileName = name,
@@ -112,32 +112,41 @@ internal class AndroidFilePicker(
 private const val PERSISTABLE_PERMISSION_FLAGS =
   Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
-private data class DocumentResult(
+internal data class DocumentResult(
   val uri: Uri?,
   val grantFlags: Int,
 )
 
-private data class MultipleDocumentResult(
+internal data class MultipleDocumentResult(
   val uris: List<Uri>,
   val grantFlags: Int,
 )
 
-private data class OpenDocumentParams(
+internal data class OpenDocumentParams(
   val mimeTypes: List<String>,
   val title: String?,
   val initialUri: Uri?,
 )
 
-private data class OpenDocumentTreeParams(
+internal data class OpenDocumentTreeParams(
   val title: String?,
   val initialUri: Uri?,
 )
 
-private data class CreateDocumentParams(
+internal data class CreateDocumentParams(
   val fileName: String,
   val title: String?,
   val initialUri: Uri?,
   val mimeType: String?,
+)
+
+internal data class DocumentIntentSpec(
+  val action: String,
+  val type: String,
+  val mimeTypes: List<String> = emptyList(),
+  val title: String? = null,
+  val initialUri: String? = null,
+  val allowMultiple: Boolean = false,
 )
 
 private class OpenDocumentContract : ActivityResultContract<OpenDocumentParams, DocumentResult>() {
@@ -204,15 +213,16 @@ private class OpenDocumentTreeContract :
 
 private class CreateDocumentContract : ActivityResultContract<CreateDocumentParams, DocumentResult>() {
   override fun createIntent(context: Context, input: CreateDocumentParams): Intent {
+    val spec = input.toCreateDocumentIntentSpec()
     return Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
       addCategory(Intent.CATEGORY_OPENABLE)
-      type = input.mimeType ?: "*/*"
+      type = spec.type
       addFlags(
         Intent.FLAG_GRANT_READ_URI_PERMISSION or
           Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
           Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
       )
-      putExtra(Intent.EXTRA_TITLE, input.fileName)
+      putExtra(Intent.EXTRA_TITLE, spec.title)
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         input.initialUri?.let { putExtra(DocumentsContract.EXTRA_INITIAL_URI, it) }
       }
@@ -232,58 +242,72 @@ private fun PlatformFile.asInitialUri(): Uri? {
   return uri
 }
 
-private fun PlatformFileType.resolveMimeTypes(): List<String> {
+internal fun PlatformFileType.resolveMimeTypes(): List<String> {
+  return resolveMimeTypes(::extensionToMimeType)
+}
+
+internal fun PlatformFileType.resolveMimeTypes(
+  extensionMimeType: (String) -> String?,
+): List<String> {
   return when (this) {
     PlatformFileType.Image -> listOf("image/*")
     PlatformFileType.Video -> listOf("video/*")
     PlatformFileType.ImageAndVideo -> listOf("image/*", "video/*")
     is PlatformFileType.File -> {
-      val resolved = extensions.mapNotNull { extensionToMimeType(it) }.distinct()
+      val resolved = extensions.mapNotNull { extensionMimeType(it) }.distinct()
       if (resolved.isNotEmpty()) resolved else listOf("*/*")
     }
   }
 }
 
-private fun FilePickerMode.limit(uris: List<Uri>): List<Uri> {
-  return when (this) {
-    is FilePickerMode.Multiple -> {
-      val maxItems = maxItems
-      if (maxItems == null || maxItems <= 0) uris else uris.take(maxItems)
-    }
-    else -> uris
-  }
-}
-
-private fun buildOpenDocumentIntent(
+internal fun buildOpenDocumentIntent(
   input: OpenDocumentParams,
   allowMultiple: Boolean,
 ): Intent {
+  val spec = input.toOpenDocumentIntentSpec(allowMultiple)
   return Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
     addCategory(Intent.CATEGORY_OPENABLE)
-    type = input.mimeTypes.firstOrNull() ?: "*/*"
+    type = spec.type
     addFlags(
       Intent.FLAG_GRANT_READ_URI_PERMISSION or
         Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
         Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
     )
-    putExtra(Intent.EXTRA_MIME_TYPES, input.mimeTypes.toTypedArray())
-    if (allowMultiple) {
+    putExtra(Intent.EXTRA_MIME_TYPES, spec.mimeTypes.toTypedArray())
+    if (spec.allowMultiple) {
       putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
     }
-    input.title?.let { putExtra(Intent.EXTRA_TITLE, it) }
+    spec.title?.let { putExtra(Intent.EXTRA_TITLE, it) }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       input.initialUri?.let { putExtra(DocumentsContract.EXTRA_INITIAL_URI, it) }
     }
   }
 }
 
-private fun extensionToMimeType(extension: String): String? {
-  val normalized = extension.removePrefix(".").lowercase()
-  return MimeTypeMap.getSingleton().getMimeTypeFromExtension(normalized)
+internal fun OpenDocumentParams.toOpenDocumentIntentSpec(
+  allowMultiple: Boolean,
+): DocumentIntentSpec {
+  return DocumentIntentSpec(
+    action = Intent.ACTION_OPEN_DOCUMENT,
+    type = mimeTypes.firstOrNull() ?: "*/*",
+    mimeTypes = mimeTypes,
+    title = title,
+    initialUri = initialUri?.toString(),
+    allowMultiple = allowMultiple,
+  )
 }
 
-private fun buildFileName(name: String, extension: String?): String {
-  if (extension.isNullOrBlank()) return name
-  val normalized = extension.removePrefix(".")
-  return if (name.endsWith(".$normalized")) name else "$name.$normalized"
+internal fun CreateDocumentParams.toCreateDocumentIntentSpec(): DocumentIntentSpec {
+  return DocumentIntentSpec(
+    action = Intent.ACTION_CREATE_DOCUMENT,
+    type = mimeType ?: "*/*",
+    title = fileName,
+    initialUri = initialUri?.toString(),
+  )
+}
+
+internal fun extensionToMimeType(extension: String): String? {
+  val normalized = extension.removePrefix(".").trim().lowercase()
+  if (normalized.isEmpty()) return null
+  return MimeTypeMap.getSingleton().getMimeTypeFromExtension(normalized)
 }

@@ -17,24 +17,11 @@ sealed interface PlatformFileType {
 }
 
 /**
- * Picker selection mode.
- */
-sealed interface FilePickerMode {
-
-  data object Single : FilePickerMode
-
-  data class Multiple(
-    val maxItems: Int? = null,
-  ) : FilePickerMode
-}
-
-/**
  * File picker configuration.
  */
 data class FilePickerOptions(
   val title: String? = null,
   val type: PlatformFileType = PlatformFileType.File(),
-  val mode: FilePickerMode = FilePickerMode.Single,
   val startLocation: PlatformFile? = null,
 )
 
@@ -47,12 +34,23 @@ data class DirectoryPickerOptions(
 )
 
 /**
- * File save configuration.
+ * File creation configuration.
+ *
+ * This creates a platform file target and does not write content to it.
  */
-data class FileSaveOptions(
+data class FileCreateOptions(
   val suggestedName: String,
   val extension: String? = null,
   val directory: PlatformFile? = null,
   val mimeType: String? = null,
   val title: String? = null,
 )
+
+internal fun buildPlatformFileName(name: String, extension: String?): String {
+  val normalized = extension?.removePrefix(".")?.trim()?.takeIf { it.isNotBlank() } ?: return name
+  return if (name.endsWith(".$normalized")) name else "$name.$normalized"
+}
+
+internal fun <T> limitFileSelection(items: List<T>, maxItems: Int?): List<T> {
+  return if (maxItems == null || maxItems <= 0) items else items.take(maxItems)
+}
