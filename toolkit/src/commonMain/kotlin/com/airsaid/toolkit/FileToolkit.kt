@@ -9,16 +9,25 @@ interface FileToolkit {
     options: FilePickerOptions = FilePickerOptions(),
   ): PlatformFile?
 
+  /**
+   * Opens a multiple-file picker.
+   *
+   * @param maxItems Maximum returned items. `null` or non-positive values do not limit selection.
+   */
   suspend fun pickFiles(
     options: FilePickerOptions = FilePickerOptions(),
+    maxItems: Int? = null,
   ): List<PlatformFile>
 
   suspend fun pickDirectory(
     options: DirectoryPickerOptions = DirectoryPickerOptions(),
   ): PlatformFile?
 
-  suspend fun saveFile(
-    options: FileSaveOptions,
+  /**
+   * Creates or selects a writable file target without writing content to it.
+   */
+  suspend fun createFile(
+    options: FileCreateOptions,
   ): PlatformFile?
 }
 

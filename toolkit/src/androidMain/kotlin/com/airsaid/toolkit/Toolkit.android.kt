@@ -13,6 +13,7 @@ actual object Toolkit {
   private var keyboardMonitor: KeyboardMonitor? = null
   private var shareToolkit: ShareToolkit? = null
   private var appLifecycleMonitor: AppLifecycleMonitor? = null
+  private var appNavigator: AppNavigator? = null
   private var fileToolkit: FileToolkit? = null
   private var sensorToolkit: SensorToolkit? = null
 
@@ -28,7 +29,7 @@ actual object Toolkit {
     DeviceInfoProvider.initialize(applicationContext)
     HapticFeedbackFactory.initialize(applicationContext)
     NetworkMonitorFactory.initialize(applicationContext)
-    AppNavigator.initialize(applicationContext)
+    AppNavigatorFactory.initialize(applicationContext)
     KeyboardMonitorFactory.initialize(applicationContext)
     ShareToolkitFactory.initialize(applicationContext)
     FileToolkitFactory.initialize(applicationContext)
@@ -80,7 +81,7 @@ actual object Toolkit {
 
   actual fun navigator(): AppNavigator {
     ensureInitialized()
-    return AppNavigator
+    return cached(appNavigator, AppNavigatorFactory::create) { appNavigator = it }
   }
 
   actual fun files(): FileToolkit {

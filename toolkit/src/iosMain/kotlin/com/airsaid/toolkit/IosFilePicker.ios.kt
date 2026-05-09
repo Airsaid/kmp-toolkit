@@ -24,16 +24,20 @@ internal class IosFilePicker {
     val urls = openDocuments(
       types = options.type.resolveTypes(),
       allowsMultiple = false,
+      title = options.title,
+      directoryUrl = options.startLocation?.url,
     )
     return urls.firstOrNull()?.let { PlatformFile(it) }
   }
 
-  suspend fun openFiles(options: FilePickerOptions): List<PlatformFile> {
+  suspend fun openFiles(options: FilePickerOptions, maxItems: Int?): List<PlatformFile> {
     val urls = openDocuments(
       types = options.type.resolveTypes(),
       allowsMultiple = true,
+      title = options.title,
+      directoryUrl = options.startLocation?.url,
     )
-    val limited = options.mode.limit(urls)
+    val limited = limitFileSelection(urls, maxItems)
     return limited.map { PlatformFile(it) }
   }
 
@@ -41,15 +45,19 @@ internal class IosFilePicker {
     val urls = openDocuments(
       types = listOf("public.folder"),
       allowsMultiple = false,
+      title = options.title,
+      directoryUrl = options.startLocation?.url,
     )
     return urls.firstOrNull()?.let { PlatformFile(it) }
   }
 
-  suspend fun saveFile(options: FileSaveOptions): PlatformFile? {
-    val fileName = buildFileName(options.suggestedName, options.extension)
+  suspend fun createFile(options: FileCreateOptions): PlatformFile? {
+    val fileName = buildPlatformFileName(options.suggestedName, options.extension)
     val tempUrl = temporaryUrl(fileName)
     val urls = openExporter(
       url = tempUrl,
+      title = options.title,
+      directoryUrl = options.directory?.url,
     )
     return urls.firstOrNull()?.let { PlatformFile(it) }
   }
@@ -57,28 +65,35 @@ internal class IosFilePicker {
   private suspend fun openDocuments(
     types: List<String>,
     allowsMultiple: Boolean,
+    title: String?,
+    directoryUrl: NSURL?,
   ): List<NSURL> {
     return suspendCancellableCoroutine { continuation ->
-      val presenter = resolvePresenterOrThrow(continuation) ?: return@suspendCancellableCoroutine
-      val controller = UIDocumentPickerViewController(
-        documentTypes = types,
-        inMode = UIDocumentPickerMode.UIDocumentPickerModeImport,
-      )
-      controller.allowsMultipleSelection = allowsMultiple
-      presentPicker(controller, presenter, continuation)
+      dispatch_async(dispatch_get_main_queue()) {
+        if (!continuation.isActive) return@dispatch_async
+        val presenter = resolvePresenterOrThrow(continuation) ?: return@dispatch_async
+        val controller = createOpeningController(types, allowsMultiple)
+        controller.title = title
+        controller.directoryURL = directoryUrl
+        presentPicker(controller, presenter, continuation)
+      }
     }
   }
 
   private suspend fun openExporter(
     url: NSURL,
+    title: String?,
+    directoryUrl: NSURL?,
   ): List<NSURL> {
     return suspendCancellableCoroutine { continuation ->
-      val presenter = resolvePresenterOrThrow(continuation) ?: return@suspendCancellableCoroutine
-      val controller = UIDocumentPickerViewController(
-        uRLs = listOf(url),
-        inMode = UIDocumentPickerMode.UIDocumentPickerModeExportToService,
-      )
-      presentPicker(controller, presenter, continuation)
+      dispatch_async(dispatch_get_main_queue()) {
+        if (!continuation.isActive) return@dispatch_async
+        val presenter = resolvePresenterOrThrow(continuation) ?: return@dispatch_async
+        val controller = createExportController(url)
+        controller.title = title
+        controller.directoryURL = directoryUrl
+        presentPicker(controller, presenter, continuation)
+      }
     }
   }
 
@@ -95,9 +110,7 @@ internal class IosFilePicker {
       activeDelegates.remove(delegate)
     }
     controller.delegate = delegate
-    dispatch_async(dispatch_get_main_queue()) {
-      presenter.presentViewController(controller, animated = true, completion = null)
-    }
+    presenter.presentViewController(controller, animated = true, completion = null)
   }
 
   private fun temporaryUrl(fileName: String): NSURL {
@@ -119,6 +132,26 @@ internal class IosFilePicker {
       return null
     }
     return presenter
+  }
+
+  private fun createOpeningController(
+    types: List<String>,
+    allowsMultiple: Boolean,
+  ): UIDocumentPickerViewController {
+    val contentTypes = types.mapNotNull { UTType.typeWithIdentifier(it) }
+    val controller = UIDocumentPickerViewController(
+      forOpeningContentTypes = contentTypes,
+      asCopy = true,
+    )
+    controller.allowsMultipleSelection = allowsMultiple
+    return controller
+  }
+
+  private fun createExportController(url: NSURL): UIDocumentPickerViewController {
+    return UIDocumentPickerViewController(
+      forExportingURLs = listOf(url),
+      asCopy = true,
+    )
   }
 }
 
@@ -166,20 +199,4 @@ private fun String.toUniformTypeIdentifier(): String? {
   val normalized = removePrefix(".").trim().lowercase()
   if (normalized.isEmpty()) return null
   return UTType.typeWithFilenameExtension(normalized)?.identifier
-}
-
-private fun FilePickerMode.limit(urls: List<NSURL>): List<NSURL> {
-  return when (this) {
-    is FilePickerMode.Multiple -> {
-      val maxItems = maxItems
-      if (maxItems == null || maxItems <= 0) urls else urls.take(maxItems)
-    }
-    else -> urls
-  }
-}
-
-private fun buildFileName(name: String, extension: String?): String {
-  if (extension.isNullOrBlank()) return name
-  val normalized = extension.removePrefix(".")
-  return if (name.endsWith(".$normalized")) name else "$name.$normalized"
 }

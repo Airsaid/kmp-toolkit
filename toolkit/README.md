@@ -280,24 +280,29 @@ Use `Toolkit.navigator()` to open common system destinations from shared code.
 ```kotlin
 val navigator = Toolkit.navigator()
 
-val openedSystem = navigator.navigateToSystemSettings()
-val openedApp = navigator.navigateToAppDetails()
-val openedNotifications = navigator.navigateToNotificationSettings()
-val openedUrl = navigator.navigateToUrl("https://example.com")
-val openedEmail = navigator.navigateToEmail(
+val openedSystem = navigator.openSystemSettings()
+val openedApp = navigator.openAppSettings()
+val openedNotifications = navigator.openNotificationSettings()
+val openedUrl = navigator.openUrl("https://example.com")
+val openedEmail = navigator.openEmail(
   to = "support@example.com",
   subject = "Feedback",
   body = "Describe the issue",
 )
-val openedDial = navigator.navigateToDial("10086")
-val openedSms = navigator.navigateToSms(
-  phone = "10086",
+val openedDial = navigator.openDial("10086")
+val openedSms = navigator.openSms(
+  phoneNumber = "10086",
   body = "Hello",
 )
-val openedStore = navigator.navigateToAppStoreDetails("com.example.app")
+val openedStore = navigator.openAppStoreDetails(
+  AppStoreDetailsNavigationRequest(
+    androidPackageName = "com.example.app",
+    iosAppId = "123456789",
+  )
+)
 ```
 
-`navigateToAppStoreDetails(appId)` expects an Android package name on Android and an App Store app id on iOS. Navigation methods return `false` when the platform cannot handle the request.
+Navigation methods return an `AppNavigationResult`. `Presented(destination)` means the platform accepted the request, while `Failed(reason)` reports invalid input, unsupported destinations, missing target apps, security denial, or presentation failures. iOS does not expose a system-wide settings destination, so `openSystemSettings()` returns `UNSUPPORTED_DESTINATION` there. Notification settings can fall back to app settings on platforms or versions without a dedicated destination. `openAppStoreDetails(...)` uses `androidPackageName` on Android and `iosAppId` on iOS.
 
 ## Share
 
@@ -337,7 +342,7 @@ val result = shareToolkit.share(
 
 ## File Picking and Saving
 
-Use `Toolkit.files()` to open platform file pickers, directory pickers, and save destinations. Android uses the Storage Access Framework, and iOS uses `UIDocumentPicker`.
+Use `Toolkit.files()` to open platform file pickers, directory pickers, and create writable file targets. Android uses the Storage Access Framework, and iOS uses `UIDocumentPicker`.
 
 ```kotlin
 val files = Toolkit.files()
@@ -353,21 +358,23 @@ val selected = files.pickFiles(
   FilePickerOptions(
     title = "Choose images",
     type = PlatformFileType.Image,
-    mode = FilePickerMode.Multiple(maxItems = 5),
-  )
+  ),
+  maxItems = 5,
 )
 
 val directory = files.pickDirectory(
   DirectoryPickerOptions(title = "Choose a folder")
 )
 
-val saved = files.saveFile(
-  FileSaveOptions(
+val created = files.createFile(
+  FileCreateOptions(
     suggestedName = "document",
     extension = "txt",
   )
 )
 ```
+
+`createFile` only creates or selects a writable target. Write content to the returned platform file with platform I/O APIs.
 
 `PlatformFile` exposes common metadata and scoped access helpers:
 
@@ -377,7 +384,7 @@ if (file != null) {
   val name = file.name
   val extension = file.extension
   val path = file.path
-  val size = file.size()
+  val size = file.size() // null when the platform cannot provide a size.
   val mimeType = file.mimeType()
   val exists = file.exists()
 }

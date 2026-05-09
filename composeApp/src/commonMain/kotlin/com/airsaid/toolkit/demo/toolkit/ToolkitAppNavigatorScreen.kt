@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.airsaid.toolkit.AppStoreDetailsNavigationRequest
 import com.airsaid.toolkit.Toolkit
 import com.airsaid.toolkit.demo.resources.Res
 import com.airsaid.toolkit.demo.resources.action_app_details
@@ -24,7 +25,6 @@ import com.airsaid.toolkit.demo.resources.action_system_settings
 import com.airsaid.toolkit.demo.resources.email_body_describe_issue
 import com.airsaid.toolkit.demo.resources.email_subject_feedback
 import com.airsaid.toolkit.demo.resources.sms_body_hello
-import com.airsaid.toolkit.isIos
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -32,12 +32,11 @@ import org.jetbrains.compose.resources.stringResource
 fun ToolkitAppNavigatorScreen(modifier: Modifier = Modifier) {
   val item = remember { ToolkitDemoItems.all.first { it.route == ToolkitDemoItems.AppNavigatorRoute } }
   val navigator = remember { Toolkit.navigator() }
-  val appStoreId = remember {
-    if (Toolkit.platform.isIos) {
-      "123456789"
-    } else {
-      "com.example.app"
-    }
+  val appStoreRequest = remember {
+    AppStoreDetailsNavigationRequest(
+      androidPackageName = "com.example.app",
+      iosAppId = "123456789",
+    )
   }
   val emailSubject = stringResource(Res.string.email_subject_feedback)
   val emailBody = stringResource(Res.string.email_body_describe_issue)
@@ -53,22 +52,22 @@ fun ToolkitAppNavigatorScreen(modifier: Modifier = Modifier) {
       verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
       Button(onClick = {
-        navigator.navigateToSystemSettings()
+        navigator.openSystemSettings()
       }) {
         Text(text = stringResource(Res.string.action_system_settings))
       }
       OutlinedButton(onClick = {
-        navigator.navigateToAppDetails()
+        navigator.openAppSettings()
       }) {
         Text(text = stringResource(Res.string.action_app_details))
       }
       OutlinedButton(onClick = {
-        navigator.navigateToNotificationSettings()
+        navigator.openNotificationSettings()
       }) {
         Text(text = stringResource(Res.string.action_notification_settings))
       }
       OutlinedButton(onClick = {
-        navigator.navigateToEmail(
+        navigator.openEmail(
           to = "support@example.com",
           subject = emailSubject,
           body = emailBody,
@@ -77,25 +76,25 @@ fun ToolkitAppNavigatorScreen(modifier: Modifier = Modifier) {
         Text(text = stringResource(Res.string.action_send_email))
       }
       OutlinedButton(onClick = {
-        navigator.navigateToDial("10086")
+        navigator.openDial("10086")
       }) {
         Text(text = stringResource(Res.string.action_dial))
       }
       OutlinedButton(onClick = {
-        navigator.navigateToSms(
-          phone = "10086",
+        navigator.openSms(
+          phoneNumber = "10086",
           body = smsBody,
         )
       }) {
         Text(text = stringResource(Res.string.action_sms))
       }
       OutlinedButton(onClick = {
-        navigator.navigateToAppStoreDetails(appStoreId)
+        navigator.openAppStoreDetails(appStoreRequest)
       }) {
         Text(text = stringResource(Res.string.action_app_store_details))
       }
       OutlinedButton(onClick = {
-        navigator.navigateToUrl("https://example.com")
+        navigator.openUrl("https://example.com")
       }) {
         Text(text = stringResource(Res.string.action_open_url))
       }

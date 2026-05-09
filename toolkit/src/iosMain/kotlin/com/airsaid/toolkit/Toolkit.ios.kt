@@ -10,6 +10,7 @@ actual object Toolkit {
   private var keyboardMonitor: KeyboardMonitor? = null
   private var shareToolkit: ShareToolkit? = null
   private var appLifecycleMonitor: AppLifecycleMonitor? = null
+  private var appNavigator: AppNavigator? = null
   private var fileToolkit: FileToolkit? = null
   private var sensorToolkit: SensorToolkit? = null
 
@@ -51,7 +52,7 @@ actual object Toolkit {
   }
 
   actual fun navigator(): AppNavigator {
-    return AppNavigator
+    return cached(appNavigator, AppNavigatorFactory::create) { appNavigator = it }
   }
 
   actual fun files(): FileToolkit {
