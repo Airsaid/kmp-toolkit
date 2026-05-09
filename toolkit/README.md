@@ -88,7 +88,7 @@ On Android, `packageName` is the application id. On iOS, it is the bundle identi
 
 ## Device Info
 
-Use `Toolkit.deviceInfo()` to read device, screen, time zone, and locale information.
+Use `Toolkit.deviceInfo()` to read device, window, screen, time zone, and locale information.
 
 ```kotlin
 val device = Toolkit.deviceInfo()
@@ -100,18 +100,25 @@ println(device.manufacturer.manufacturer)
 println(device.manufacturer.brand)
 println(device.deviceType.isTablet)
 println(device.deviceType.isEmulator)
+println(device.window?.widthPx)
+println(device.window?.heightPx)
+println(device.window?.widthLogical)
+println(device.window?.heightLogical)
 println(device.screen.widthPx)
 println(device.screen.heightPx)
+println(device.screen.widthLogical)
+println(device.screen.heightLogical)
 println(device.screen.density)
 println(device.timeZone.id)
 println(device.timeZone.offsetMinutes)
+println(device.locale.current.languageTag)
 println(device.locale.current.languageCode)
+println(device.locale.current.scriptCode)
 println(device.locale.current.regionCode)
-println(device.locale.current.tag)
 println(device.locale.preferred)
 ```
 
-Screen and manufacturer values are platform-derived and should be treated as runtime information, not as a stable device identity.
+`window` is the current foreground app/window viewport when available. `screen` is a platform main screen snapshot. `widthLogical` and `heightLogical` are Android dp and iOS points. Device type and emulator flags are heuristics; do not use them for layout breakpoints, security, licensing, or anti-abuse checks.
 
 ## Clipboard
 

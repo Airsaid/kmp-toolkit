@@ -161,12 +161,14 @@ println(device.manufacturer.manufacturer)
 println(device.manufacturer.brand)
 println(device.deviceType.isTablet)
 println(device.deviceType.isEmulator)
+println(device.window?.widthPx)
+println(device.window?.heightPx)
 println(device.screen.widthPx)
 println(device.screen.heightPx)
 println(device.screen.density)
 println(device.timeZone.id)
 println(device.timeZone.offsetMinutes)
-println(device.locale.current.tag)
+println(device.locale.current.languageTag)
 println(device.locale.preferred)]]></string>
   <string name="demo_platform_title">Platform detection</string>
   <string name="demo_platform_description">Detect the current platform from common code.</string>
@@ -341,10 +343,12 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="device_system_version_code">System version code</string>
   <string name="device_manufacturer">Manufacturer</string>
   <string name="device_brand">Brand</string>
-  <string name="device_tablet">Tablet</string>
-  <string name="device_emulator">Emulator</string>
+  <string name="device_tablet">Tablet heuristic</string>
+  <string name="device_emulator">Emulator heuristic</string>
+  <string name="device_window_px">Window (px)</string>
+  <string name="device_window_logical">Window logical</string>
   <string name="device_screen_px">Screen (px)</string>
-  <string name="device_screen_dp">Screen (dp)</string>
+  <string name="device_screen_logical">Screen logical</string>
   <string name="device_density">Density</string>
   <string name="device_orientation">Orientation</string>
   <string name="device_landscape">Landscape</string>

@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.airsaid.toolkit.DeviceInfo
+import com.airsaid.toolkit.DisplayInfo
 import com.airsaid.toolkit.Toolkit
 import com.airsaid.toolkit.demo.resources.Res
 import com.airsaid.toolkit.demo.resources.action_read_device_info
@@ -26,13 +27,15 @@ import com.airsaid.toolkit.demo.resources.device_model
 import com.airsaid.toolkit.demo.resources.device_orientation
 import com.airsaid.toolkit.demo.resources.device_portrait
 import com.airsaid.toolkit.demo.resources.device_preferred_languages
-import com.airsaid.toolkit.demo.resources.device_screen_dp
+import com.airsaid.toolkit.demo.resources.device_screen_logical
 import com.airsaid.toolkit.demo.resources.device_screen_px
 import com.airsaid.toolkit.demo.resources.device_system
 import com.airsaid.toolkit.demo.resources.device_system_version_code
 import com.airsaid.toolkit.demo.resources.device_tablet
 import com.airsaid.toolkit.demo.resources.device_time_zone
 import com.airsaid.toolkit.demo.resources.device_time_zone_value
+import com.airsaid.toolkit.demo.resources.device_window_logical
+import com.airsaid.toolkit.demo.resources.device_window_px
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import org.jetbrains.compose.resources.stringResource
 
@@ -67,13 +70,15 @@ private fun buildDeviceInfoText(device: DeviceInfo): String {
   val rows = listOf(
     stringResource(Res.string.device_model) to device.deviceModel,
     stringResource(Res.string.device_system) to "${device.systemName} ${device.systemVersion}",
-    stringResource(Res.string.device_system_version_code) to device.systemVersionCode.toString(),
+    stringResource(Res.string.device_system_version_code) to device.systemVersionCode?.toString().orEmpty(),
     stringResource(Res.string.device_manufacturer) to device.manufacturer.manufacturer,
     stringResource(Res.string.device_brand) to device.manufacturer.brand,
     stringResource(Res.string.device_tablet) to device.deviceType.isTablet.toString(),
     stringResource(Res.string.device_emulator) to device.deviceType.isEmulator.toString(),
+    stringResource(Res.string.device_window_px) to formatDisplayPx(device.window),
+    stringResource(Res.string.device_window_logical) to formatDisplayLogical(device.window),
     stringResource(Res.string.device_screen_px) to "${device.screen.widthPx} x ${device.screen.heightPx}",
-    stringResource(Res.string.device_screen_dp) to "${device.screen.widthDp} x ${device.screen.heightDp}",
+    stringResource(Res.string.device_screen_logical) to formatDisplayLogical(device.screen),
     stringResource(Res.string.device_density) to "${device.screen.density} / ${device.screen.densityDpi}dpi",
     stringResource(Res.string.device_orientation) to if (device.screen.isLandscape) {
       stringResource(Res.string.device_landscape)
@@ -85,10 +90,18 @@ private fun buildDeviceInfoText(device: DeviceInfo): String {
       device.timeZone.id,
       device.timeZone.offsetMinutes,
     ),
-    stringResource(Res.string.device_current_language) to device.locale.current.tag,
-    stringResource(Res.string.device_preferred_languages) to device.locale.preferred.joinToString { it.tag },
+    stringResource(Res.string.device_current_language) to device.locale.current.languageTag,
+    stringResource(Res.string.device_preferred_languages) to device.locale.preferred.joinToString { it.languageTag },
   )
   return rows.joinToString("\n") { (label, value) ->
     "$label: ${value.ifBlank { "-" }}"
   }
+}
+
+private fun formatDisplayPx(display: DisplayInfo?): String {
+  return display?.let { "${it.widthPx} x ${it.heightPx}" }.orEmpty()
+}
+
+private fun formatDisplayLogical(display: DisplayInfo?): String {
+  return display?.let { "${it.widthLogical} x ${it.heightLogical}" }.orEmpty()
 }

@@ -88,7 +88,7 @@ Android 上 `packageName` 是 application id；iOS 上是 bundle identifier。
 
 ## 设备信息
 
-使用 `Toolkit.deviceInfo()` 读取设备、屏幕、时区与语言偏好信息。
+使用 `Toolkit.deviceInfo()` 读取设备、窗口、屏幕、时区与语言偏好信息。
 
 ```kotlin
 val device = Toolkit.deviceInfo()
@@ -100,18 +100,25 @@ println(device.manufacturer.manufacturer)
 println(device.manufacturer.brand)
 println(device.deviceType.isTablet)
 println(device.deviceType.isEmulator)
+println(device.window?.widthPx)
+println(device.window?.heightPx)
+println(device.window?.widthLogical)
+println(device.window?.heightLogical)
 println(device.screen.widthPx)
 println(device.screen.heightPx)
+println(device.screen.widthLogical)
+println(device.screen.heightLogical)
 println(device.screen.density)
 println(device.timeZone.id)
 println(device.timeZone.offsetMinutes)
+println(device.locale.current.languageTag)
 println(device.locale.current.languageCode)
+println(device.locale.current.scriptCode)
 println(device.locale.current.regionCode)
-println(device.locale.current.tag)
 println(device.locale.preferred)
 ```
 
-屏幕与厂商信息来自平台运行时，应视为运行环境信息，不应当作稳定设备身份。
+`window` 表示当前前台应用/窗口视口（可获取时），`screen` 表示平台主屏幕快照。`widthLogical` 与 `heightLogical` 在 Android 上是 dp，在 iOS 上是 points。设备类型与模拟器字段都是启发式判断；不要用于布局断点、安全、授权或反作弊校验。
 
 ## 剪贴板
 
