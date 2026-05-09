@@ -63,9 +63,7 @@ actual object Toolkit {
     return cached(sensorToolkit, SensorToolkitFactory::create) { sensorToolkit = it }
   }
 
-  actual fun currentPlatform(): PlatformType {
-    return Platform.current
-  }
+  actual val platform: PlatformType = PlatformType.Ios
 
   private inline fun <T> cached(
     current: T?,

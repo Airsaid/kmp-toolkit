@@ -81,5 +81,5 @@ expect object Toolkit {
   /**
    * Returns the current platform.
    */
-  fun currentPlatform(): PlatformType
+  val platform: PlatformType
 }

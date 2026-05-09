@@ -177,13 +177,13 @@ println(device.locale.current.languageTag)
 println(device.locale.preferred)]]></string>
   <string name="demo_platform_title">平台判断</string>
   <string name="demo_platform_description">在 common 代码中判断当前平台。</string>
-  <string name="demo_platform_code"><![CDATA[val platform = Toolkit.currentPlatform()
+  <string name="demo_platform_code"><![CDATA[val platform = Toolkit.platform
 
-if (platform.isAndroid()) {
+if (platform.isAndroid) {
 
 }
 
-if (platform.isIos()) {
+if (platform.isIos) {
 
 }]]></string>
   <string name="demo_keyboard_title">键盘状态监听</string>

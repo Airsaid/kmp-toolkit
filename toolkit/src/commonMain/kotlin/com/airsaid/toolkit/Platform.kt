@@ -19,20 +19,11 @@ sealed interface PlatformType {
 /**
  * Returns true when this platform is Android.
  */
-fun PlatformType.isAndroid(): Boolean = this is PlatformType.Android
+val PlatformType.isAndroid: Boolean
+  get() = this is PlatformType.Android
 
 /**
  * Returns true when this platform is iOS.
  */
-fun PlatformType.isIos(): Boolean = this is PlatformType.Ios
-
-/**
- * Platform accessor for common code.
- */
-internal expect object Platform {
-
-  /**
-   * Current platform.
-   */
-  val current: PlatformType
-}
+val PlatformType.isIos: Boolean
+  get() = this is PlatformType.Ios
