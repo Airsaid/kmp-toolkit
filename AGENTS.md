@@ -10,6 +10,8 @@
 - `./gradlew build`: Builds all modules and runs unit tests where applicable.
 - `./gradlew :composeApp:assembleDebug`: Builds the Android demo APK.
 - `./gradlew :toolkit:testAndroidHostTest`: Runs Android host tests.
+- `./gradlew :toolkit:lint --no-parallel`: Runs Android lint for the library module. Use `--no-parallel` to avoid intermittent AGP/KMP lint classpath races.
+- `./gradlew :composeApp:lint --no-parallel`: Runs Android lint for the demo app.
 - `./gradlew :toolkit:connectedAndroidTest`: Runs Android device tests in `toolkit/src/androidDeviceTest` (requires emulator/device).
 - iOS app: open `iosApp/iosApp.xcodeproj` in Xcode and run the scheme.
 
@@ -22,6 +24,7 @@
 - Common tests use `kotlin-test` in `commonTest` source sets.
 - Android instrumentation tests live under `toolkit/src/androidDeviceTest` and use AndroidX test + JUnit.
 - Name tests with `*Test` suffix (e.g., `DiskLogStrategyBufferTest`).
+- After any code, manifest, resource, Gradle, or demo UI change, run the affected tests and the relevant lint tasks before committing. For `toolkit/` changes run `./gradlew :toolkit:lint --no-parallel`; for `composeApp/` changes run `./gradlew :composeApp:lint --no-parallel`. If a change touches both modules, run both lint tasks.
 
 ## Commit & Pull Request Guidelines
 - Use an English, imperative, concise subject line.
