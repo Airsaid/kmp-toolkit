@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 class AppLifecycleStateTrackerTest {
 
   @Test
-  fun coldStartIsCountedOnFirstForegroundEntry() {
+  fun coldStartIsReportedOnFirstForegroundEntry() {
     val tracker = AppLifecycleStateTracker()
 
     val update = tracker.update(isInForeground = true, isVisible = true)
@@ -16,14 +16,12 @@ class AppLifecycleStateTrackerTest {
 
     assertTrue(status.isInForeground)
     assertTrue(status.isVisible)
-    assertEquals(1, status.coldStartCount)
-    assertEquals(0, status.hotStartCount)
     assertEquals(AppStartType.COLD, status.lastStartType)
     assertEquals(AppStartType.COLD, update.startType)
   }
 
   @Test
-  fun hotStartIsCountedWhenReturningToForeground() {
+  fun hotStartIsReportedWhenReturningToForeground() {
     val tracker = AppLifecycleStateTracker()
 
     tracker.update(isInForeground = true, isVisible = true)
@@ -31,22 +29,18 @@ class AppLifecycleStateTrackerTest {
     val update = tracker.update(isInForeground = true, isVisible = true)
     val status = update.status
 
-    assertEquals(1, status.coldStartCount)
-    assertEquals(1, status.hotStartCount)
     assertEquals(AppStartType.HOT, status.lastStartType)
     assertEquals(AppStartType.HOT, update.startType)
   }
 
   @Test
-  fun visibilityChangesDoNotAffectStartCounts() {
+  fun visibilityChangesDoNotEmitStartEvents() {
     val tracker = AppLifecycleStateTracker()
 
     tracker.update(isInForeground = true, isVisible = true)
     val update = tracker.update(isInForeground = true, isVisible = false)
     val status = update.status
 
-    assertEquals(1, status.coldStartCount)
-    assertEquals(0, status.hotStartCount)
     assertEquals(AppStartType.COLD, status.lastStartType)
     assertEquals(null, update.startType)
   }

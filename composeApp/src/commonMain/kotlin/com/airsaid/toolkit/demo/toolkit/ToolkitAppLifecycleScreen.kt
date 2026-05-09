@@ -46,8 +46,6 @@ fun ToolkitAppLifecycleScreen(modifier: Modifier = Modifier) {
         Res.string.app_lifecycle_status_format,
         status.isInForeground,
         status.isVisible,
-        status.coldStartCount,
-        status.hotStartCount,
         status.lastStartType?.name ?: "-",
       )
     })

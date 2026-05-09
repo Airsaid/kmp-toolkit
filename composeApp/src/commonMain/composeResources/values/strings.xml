@@ -201,7 +201,7 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="error_format">Error: %1$s</string>
   <string name="result_format">Result: %1$s</string>
 
-  <string name="app_lifecycle_status_format">Foreground: %1$s, visible: %2$s, cold starts: %3$s, warm starts: %4$s, latest type: %5$s</string>
+  <string name="app_lifecycle_status_format">Foreground: %1$s, visible: %2$s, latest type: %3$s</string>
   <string name="app_lifecycle_event_format">Latest launch event: %1$s</string>
 
   <string name="action_read_app_info">Read app info</string>

@@ -39,15 +39,11 @@ enum class AppStartType {
  *
  * @property isInForeground True when the app is interactive.
  * @property isVisible True when the app is visible to the user.
- * @property coldStartCount Number of cold starts in this process.
- * @property hotStartCount Number of hot starts in this process.
  * @property lastStartType The most recent start type, null before any start.
  */
 data class AppLifecycleStatus(
   val isInForeground: Boolean,
   val isVisible: Boolean,
-  val coldStartCount: Int,
-  val hotStartCount: Int,
   val lastStartType: AppStartType?,
 )
 
@@ -66,15 +62,12 @@ internal class AppLifecycleStateTracker(
   initialStatus: AppLifecycleStatus = AppLifecycleStatus(
     isInForeground = false,
     isVisible = false,
-    coldStartCount = 0,
-    hotStartCount = 0,
     lastStartType = null,
   ),
 ) {
 
   private var status: AppLifecycleStatus = initialStatus
-  private var hasStarted: Boolean =
-    initialStatus.coldStartCount > 0 || initialStatus.hotStartCount > 0
+  private var hasStarted: Boolean = initialStatus.lastStartType != null
 
   val currentStatus: AppLifecycleStatus
     get() = status
@@ -84,18 +77,11 @@ internal class AppLifecycleStateTracker(
     isVisible: Boolean,
   ): AppLifecycleUpdate {
     val wasForeground = status.isInForeground
-    var coldStarts = status.coldStartCount
-    var hotStarts = status.hotStartCount
     var lastStartType = status.lastStartType
     var startType: AppStartType? = null
 
     if (!wasForeground && isInForeground) {
       startType = if (!hasStarted) AppStartType.COLD else AppStartType.HOT
-      if (startType == AppStartType.COLD) {
-        coldStarts += 1
-      } else {
-        hotStarts += 1
-      }
       lastStartType = startType
       hasStarted = true
     }
@@ -103,8 +89,6 @@ internal class AppLifecycleStateTracker(
     status = AppLifecycleStatus(
       isInForeground = isInForeground,
       isVisible = isVisible,
-      coldStartCount = coldStarts,
-      hotStartCount = hotStarts,
       lastStartType = lastStartType,
     )
     return AppLifecycleUpdate(

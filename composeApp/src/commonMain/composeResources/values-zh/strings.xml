@@ -201,7 +201,7 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="error_format">错误: %1$s</string>
   <string name="result_format">结果: %1$s</string>
 
-  <string name="app_lifecycle_status_format">前台: %1$s，可见: %2$s，冷启动: %3$s，热启动: %4$s，最近类型: %5$s</string>
+  <string name="app_lifecycle_status_format">前台: %1$s，可见: %2$s，最近类型: %3$s</string>
   <string name="app_lifecycle_event_format">最近启动事件: %1$s</string>
 
   <string name="action_read_app_info">读取应用信息</string>
