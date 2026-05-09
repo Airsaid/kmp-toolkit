@@ -35,7 +35,6 @@ internal class NetworkMonitorImpl(
 
   private var networkCallback: ConnectivityManager.NetworkCallback? = null
   private var isMonitoring = false
-  private var isManuallyStarted = false
   private var observerCount = 0
 
   /**
@@ -55,38 +54,6 @@ internal class NetworkMonitorImpl(
    */
   override suspend fun getCurrentNetworkStatus(): NetworkStatus {
     return getNetworkStatus()
-  }
-
-  /**
-   * Starts monitoring network status.
-   *
-   * On Android, monitoring automatically begins when [observeNetworkStatus] is collected.
-   */
-  @Deprecated(
-    message = "Network monitoring now starts automatically while observeNetworkStatus() is collected.",
-  )
-  override fun startMonitoring() {
-    synchronized(lock) {
-      isManuallyStarted = true
-      if (!isMonitoring) {
-        startMonitoringInternal()
-      }
-    }
-  }
-
-  /**
-   * Stops monitoring network status by unregistering the callback.
-   */
-  @Deprecated(
-    message = "Network monitoring now stops automatically when observeNetworkStatus() has no collectors.",
-  )
-  override fun stopMonitoring() {
-    synchronized(lock) {
-      isManuallyStarted = false
-      if (observerCount == 0 && isMonitoring) {
-        stopMonitoringInternal()
-      }
-    }
   }
 
   /**
@@ -146,7 +113,7 @@ internal class NetworkMonitorImpl(
   private fun onObserverStop() {
     synchronized(lock) {
       observerCount = (observerCount - 1).coerceAtLeast(0)
-      if (observerCount == 0 && !isManuallyStarted && isMonitoring) {
+      if (observerCount == 0 && isMonitoring) {
         stopMonitoringInternal()
       }
     }

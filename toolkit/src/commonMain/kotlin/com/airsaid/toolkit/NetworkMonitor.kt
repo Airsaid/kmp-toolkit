@@ -22,22 +22,6 @@ interface NetworkMonitor {
    * @return The current [NetworkStatus].
    */
   suspend fun getCurrentNetworkStatus(): NetworkStatus
-
-  /**
-   * Starts monitoring the network status.
-   */
-  @Deprecated(
-    message = "Network monitoring now starts automatically while observeNetworkStatus() is collected.",
-  )
-  fun startMonitoring()
-
-  /**
-   * Stops monitoring the network status.
-   */
-  @Deprecated(
-    message = "Network monitoring now stops automatically when observeNetworkStatus() has no collectors.",
-  )
-  fun stopMonitoring()
 }
 
 /**

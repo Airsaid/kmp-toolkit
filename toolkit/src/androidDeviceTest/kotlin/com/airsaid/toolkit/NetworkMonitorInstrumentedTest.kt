@@ -13,14 +13,12 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class NetworkMonitorInstrumentedTest {
-  @Suppress("DEPRECATION")
   @Test
   fun observeWithMultipleCollectors() = runBlocking {
     val appContext = InstrumentationRegistry.getInstrumentation().targetContext
     Toolkit.initialize(appContext)
 
     val monitor = Toolkit.network()
-    monitor.stopMonitoring()
 
     val firstCollector = async {
       monitor.observeNetworkStatus().first()
@@ -34,18 +32,18 @@ class NetworkMonitorInstrumentedTest {
 
     assertNotNull(status1)
     assertNotNull(status2)
-
-    monitor.stopMonitoring()
   }
 
-  @Suppress("DEPRECATION")
   @Test
-  fun observeStartsAgainAfterStopMonitoring() = runBlocking {
+  fun observeStartsAgainAfterCollectionCompletes() = runBlocking {
     val appContext = InstrumentationRegistry.getInstrumentation().targetContext
     Toolkit.initialize(appContext)
 
     val monitor = Toolkit.network()
-    monitor.stopMonitoring()
+
+    withTimeout(5_000) {
+      monitor.observeNetworkStatus().first()
+    }
 
     val observedStatus = withTimeout(5_000) {
       monitor.observeNetworkStatus().first()

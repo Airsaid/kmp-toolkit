@@ -50,7 +50,6 @@ internal class NetworkMonitorImpl : NetworkMonitor {
 
   /** Tracks the number of active observers. */
   private var observerCount = 0
-  private var isManuallyStarted = false
 
   /**
    * Observes network status changes and emits [NetworkStatus] updates as a [Flow].
@@ -96,21 +95,6 @@ internal class NetworkMonitorImpl : NetworkMonitor {
   }
 
   /**
-   * Starts monitoring network status if not already started.
-   */
-  @Deprecated(
-    message = "Network monitoring now starts automatically while observeNetworkStatus() is collected.",
-  )
-  override fun startMonitoring() {
-    withLock {
-      isManuallyStarted = true
-      if (!isMonitoring) {
-        startMonitoringInternal()
-      }
-    }
-  }
-
-  /**
    * Internal method to start monitoring.
    */
   private fun startMonitoringInternal() {
@@ -130,21 +114,6 @@ internal class NetworkMonitorImpl : NetworkMonitor {
     nw_path_monitor_set_update_handler(newMonitor, updateHandler)
     nw_path_monitor_start(newMonitor)
     isMonitoring = true
-  }
-
-  /**
-   * Stops monitoring network status if currently active.
-   */
-  @Deprecated(
-    message = "Network monitoring now stops automatically when observeNetworkStatus() has no collectors.",
-  )
-  override fun stopMonitoring() {
-    withLock {
-      isManuallyStarted = false
-      if (observerCount == 0 && isMonitoring) {
-        stopMonitoringInternal()
-      }
-    }
   }
 
   /**
@@ -210,7 +179,7 @@ internal class NetworkMonitorImpl : NetworkMonitor {
   private fun onObserverStop() {
     withLock {
       observerCount = (observerCount - 1).coerceAtLeast(0)
-      if (observerCount == 0 && !isManuallyStarted && isMonitoring) {
+      if (observerCount == 0 && isMonitoring) {
         stopMonitoringInternal()
       }
     }
