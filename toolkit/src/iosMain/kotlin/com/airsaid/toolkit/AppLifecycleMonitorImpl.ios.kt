@@ -1,9 +1,8 @@
 package com.airsaid.toolkit
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import platform.Foundation.NSNotification
@@ -21,33 +20,48 @@ import platform.UIKit.UIApplicationWillResignActiveNotification
 /**
  * iOS implementation of [AppLifecycleMonitor].
  */
+@Suppress("DEPRECATION")
 internal class AppLifecycleMonitorImpl : AppLifecycleMonitor {
 
   private val tracker = AppLifecycleStateTracker()
   private val statusState = MutableStateFlow(tracker.currentStatus)
+  private val startEvents = MutableSharedFlow<AppStartType>(
+    replay = 0,
+    extraBufferCapacity = 1,
+  )
   private val lock = NSLock()
   private val observers = mutableListOf<NSObjectProtocol>()
 
   private var isMonitoring = false
   private var isManuallyStarted = false
-  private var isExplicitlyStopped = false
+  private var isSyncingInitialState = false
   private var observerCount = 0
 
   override fun observeAppLifecycle(): Flow<AppLifecycleStatus> {
     return statusState
       .onStart { onObserverStart() }
       .onCompletion { onObserverStop() }
-      .conflate()
-      .distinctUntilChanged()
+  }
+
+  override fun observeAppStartEvents(): Flow<AppStartType> {
+    return startEvents
+      .onStart { onObserverStart() }
+      .onCompletion { onObserverStop() }
   }
 
   override suspend fun getCurrentStatus(): AppLifecycleStatus {
-    return statusState.value
+    withLock {
+      syncInitialState()
+      return statusState.value
+    }
   }
 
+  @Deprecated(
+    message = "Lifecycle monitoring now starts automatically while observeAppLifecycle() or " +
+      "observeAppStartEvents() is collected.",
+  )
   override fun startMonitoring() {
     withLock {
-      isExplicitlyStopped = false
       isManuallyStarted = true
       if (!isMonitoring) {
         startMonitoringInternal()
@@ -55,11 +69,14 @@ internal class AppLifecycleMonitorImpl : AppLifecycleMonitor {
     }
   }
 
+  @Deprecated(
+    message = "Lifecycle monitoring now stops automatically when observeAppLifecycle() and " +
+      "observeAppStartEvents() have no collectors.",
+  )
   override fun stopMonitoring() {
     withLock {
       isManuallyStarted = false
-      isExplicitlyStopped = true
-      if (isMonitoring) {
+      if (observerCount == 0 && isMonitoring) {
         stopMonitoringInternal()
       }
     }
@@ -68,7 +85,7 @@ internal class AppLifecycleMonitorImpl : AppLifecycleMonitor {
   private fun onObserverStart() {
     withLock {
       observerCount += 1
-      if (!isExplicitlyStopped && !isMonitoring) {
+      if (!isMonitoring) {
         startMonitoringInternal()
       }
     }
@@ -89,41 +106,45 @@ internal class AppLifecycleMonitorImpl : AppLifecycleMonitor {
     val center = NSNotificationCenter.defaultCenter
     val queue = NSOperationQueue.mainQueue
 
-    observers += center.addObserverForName(
-      name = UIApplicationDidBecomeActiveNotification,
-      `object` = null,
-      queue = queue,
-      usingBlock = { _: NSNotification? ->
-        updateStatus(isInForeground = true, isVisible = true)
-      },
-    )
-    observers += center.addObserverForName(
-      name = UIApplicationWillResignActiveNotification,
-      `object` = null,
-      queue = queue,
-      usingBlock = { _: NSNotification? ->
-        updateStatus(isInForeground = false, isVisible = true)
-      },
-    )
-    observers += center.addObserverForName(
-      name = UIApplicationDidEnterBackgroundNotification,
-      `object` = null,
-      queue = queue,
-      usingBlock = { _: NSNotification? ->
-        updateStatus(isInForeground = false, isVisible = false)
-      },
-    )
-    observers += center.addObserverForName(
-      name = UIApplicationWillEnterForegroundNotification,
-      `object` = null,
-      queue = queue,
-      usingBlock = { _: NSNotification? ->
-        updateStatus(isInForeground = false, isVisible = true)
-      },
-    )
-
-    syncInitialState()
-    isMonitoring = true
+    isSyncingInitialState = true
+    try {
+      observers += center.addObserverForName(
+        name = UIApplicationDidBecomeActiveNotification,
+        `object` = null,
+        queue = queue,
+        usingBlock = { _: NSNotification? ->
+          updateStatus(isInForeground = true, isVisible = true)
+        },
+      )
+      observers += center.addObserverForName(
+        name = UIApplicationWillResignActiveNotification,
+        `object` = null,
+        queue = queue,
+        usingBlock = { _: NSNotification? ->
+          updateStatus(isInForeground = false, isVisible = true)
+        },
+      )
+      observers += center.addObserverForName(
+        name = UIApplicationDidEnterBackgroundNotification,
+        `object` = null,
+        queue = queue,
+        usingBlock = { _: NSNotification? ->
+          updateStatus(isInForeground = false, isVisible = false)
+        },
+      )
+      observers += center.addObserverForName(
+        name = UIApplicationWillEnterForegroundNotification,
+        `object` = null,
+        queue = queue,
+        usingBlock = { _: NSNotification? ->
+          updateStatus(isInForeground = false, isVisible = true)
+        },
+      )
+      isMonitoring = true
+      syncInitialState()
+    } finally {
+      isSyncingInitialState = false
+    }
   }
 
   private fun stopMonitoringInternal() {
@@ -136,20 +157,45 @@ internal class AppLifecycleMonitorImpl : AppLifecycleMonitor {
   }
 
   private fun syncInitialState() {
-    val appState = UIApplication.sharedApplication.applicationState
-    val isForeground = appState == UIApplicationState.UIApplicationStateActive
-    val isVisible = appState != UIApplicationState.UIApplicationStateBackground
-    updateStatus(isInForeground = isForeground, isVisible = isVisible)
+    val (isForeground, isVisible) = resolveCurrentState()
+    val currentStatus = tracker.currentStatus
+    if (currentStatus.isInForeground == isForeground &&
+      currentStatus.isVisible == isVisible
+    ) {
+      return
+    }
+    val update = tracker.update(
+      isInForeground = isForeground,
+      isVisible = isVisible,
+    )
+    publishUpdate(update, emitStartEvent = false)
   }
 
   private fun updateStatus(
     isInForeground: Boolean,
     isVisible: Boolean,
   ) {
-    statusState.value = tracker.update(
-      isInForeground = isInForeground,
-      isVisible = isVisible,
-    )
+    withLock {
+      val update = tracker.update(
+        isInForeground = isInForeground,
+        isVisible = isVisible,
+      )
+      publishUpdate(update, emitStartEvent = !isSyncingInitialState)
+    }
+  }
+
+  private fun publishUpdate(
+    update: AppLifecycleUpdate,
+    emitStartEvent: Boolean,
+  ) {
+    statusState.value = update.status
+    if (emitStartEvent) {
+      update.startType?.let { startEvents.tryEmit(it) }
+    }
+    if (update.status.isFirstLaunch) {
+      tracker.clearFirstLaunchFlag()
+      statusState.value = tracker.currentStatus
+    }
   }
 
   private inline fun <T> withLock(block: () -> T): T {
@@ -159,5 +205,12 @@ internal class AppLifecycleMonitorImpl : AppLifecycleMonitor {
     } finally {
       lock.unlock()
     }
+  }
+
+  private fun resolveCurrentState(): Pair<Boolean, Boolean> {
+    val appState = UIApplication.sharedApplication.applicationState
+    val isForeground = appState == UIApplicationState.UIApplicationStateActive
+    val isVisible = appState != UIApplicationState.UIApplicationStateBackground
+    return isForeground to isVisible
   }
 }

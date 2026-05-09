@@ -5,13 +5,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+@Suppress("DEPRECATION")
 class AppLifecycleStateTrackerTest {
 
   @Test
   fun coldStartIsCountedOnFirstForegroundEntry() {
     val tracker = AppLifecycleStateTracker()
 
-    val status = tracker.update(isInForeground = true, isVisible = true)
+    val update = tracker.update(isInForeground = true, isVisible = true)
+    val status = update.status
 
     assertTrue(status.isInForeground)
     assertTrue(status.isVisible)
@@ -19,6 +21,11 @@ class AppLifecycleStateTrackerTest {
     assertEquals(1, status.coldStartCount)
     assertEquals(0, status.hotStartCount)
     assertEquals(AppStartType.COLD, status.lastStartType)
+    assertEquals(AppStartType.COLD, update.startType)
+
+    tracker.clearFirstLaunchFlag()
+
+    assertFalse(tracker.currentStatus.isFirstLaunch)
   }
 
   @Test
@@ -26,13 +33,16 @@ class AppLifecycleStateTrackerTest {
     val tracker = AppLifecycleStateTracker()
 
     tracker.update(isInForeground = true, isVisible = true)
+    tracker.clearFirstLaunchFlag()
     tracker.update(isInForeground = false, isVisible = false)
-    val status = tracker.update(isInForeground = true, isVisible = true)
+    val update = tracker.update(isInForeground = true, isVisible = true)
+    val status = update.status
 
     assertFalse(status.isFirstLaunch)
     assertEquals(1, status.coldStartCount)
     assertEquals(1, status.hotStartCount)
     assertEquals(AppStartType.HOT, status.lastStartType)
+    assertEquals(AppStartType.HOT, update.startType)
   }
 
   @Test
@@ -40,10 +50,13 @@ class AppLifecycleStateTrackerTest {
     val tracker = AppLifecycleStateTracker()
 
     tracker.update(isInForeground = true, isVisible = true)
-    val status = tracker.update(isInForeground = true, isVisible = false)
+    tracker.clearFirstLaunchFlag()
+    val update = tracker.update(isInForeground = true, isVisible = false)
+    val status = update.status
 
     assertEquals(1, status.coldStartCount)
     assertEquals(0, status.hotStartCount)
     assertEquals(AppStartType.COLD, status.lastStartType)
+    assertEquals(null, update.startType)
   }
 }

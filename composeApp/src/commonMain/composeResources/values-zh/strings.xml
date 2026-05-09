@@ -2,9 +2,8 @@
   <string name="app_name">kmp-toolkit</string>
 
   <string name="demo_app_lifecycle_title">应用生命周期监听</string>
-  <string name="demo_app_lifecycle_description">监听前后台、可见性与冷/热启动状态。</string>
+  <string name="demo_app_lifecycle_description">监听前后台、可见性与启动事件。</string>
   <string name="demo_app_lifecycle_code"><![CDATA[val monitor = Toolkit.lifecycle()
-monitor.startMonitoring()
 scope.launch {
   monitor.observeAppLifecycle().collect { status ->
     if (status.isInForeground) {
@@ -12,11 +11,15 @@ scope.launch {
     }
   }
 }
-val status = monitor.getCurrentStatus()
-if (status.isFirstLaunch && status.lastStartType == AppStartType.COLD) {
+scope.launch {
+  monitor.observeAppStartEvents().collect { startType ->
+    if (startType == AppStartType.COLD) {
 
+    }
+  }
 }
-monitor.stopMonitoring()]]></string>
+val status = monitor.getCurrentStatus()
+println(status.lastStartType)]]></string>
   <string name="demo_app_info_title">应用信息获取</string>
   <string name="demo_app_info_description">读取应用包名、版本与构建号。</string>
   <string name="demo_app_info_code"><![CDATA[val info = Toolkit.appInfo()
@@ -198,7 +201,8 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="error_format">错误: %1$s</string>
   <string name="result_format">结果: %1$s</string>
 
-  <string name="app_lifecycle_status_format">前台: %1$s，可见: %2$s，首次启动: %3$s，冷启动: %4$s，热启动: %5$s，最近类型: %6$s</string>
+  <string name="app_lifecycle_status_format">前台: %1$s，可见: %2$s，冷启动: %3$s，热启动: %4$s，最近类型: %5$s</string>
+  <string name="app_lifecycle_event_format">最近启动事件: %1$s</string>
 
   <string name="action_read_app_info">读取应用信息</string>
   <string name="app_info_package_name">包名</string>

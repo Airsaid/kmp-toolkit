@@ -43,11 +43,10 @@ class DemoApp : Application() {
 
 ## App Lifecycle
 
-Use `Toolkit.lifecycle()` to observe foreground/background state and start type from shared code.
+Use `Toolkit.lifecycle()` to observe foreground/background state and launch events from shared code.
 
 ```kotlin
 val monitor = Toolkit.lifecycle()
-monitor.startMonitoring()
 
 scope.launch {
   monitor.observeAppLifecycle().collect { status ->
@@ -57,15 +56,19 @@ scope.launch {
   }
 }
 
-val status = monitor.getCurrentStatus()
-if (status.isFirstLaunch && status.lastStartType == AppStartType.COLD) {
-  // Run first-launch setup.
+scope.launch {
+  monitor.observeAppStartEvents().collect { startType ->
+    if (startType == AppStartType.COLD) {
+      // Run cold-start setup.
+    }
+  }
 }
 
-monitor.stopMonitoring()
+val status = monitor.getCurrentStatus()
+println(status.lastStartType)
 ```
 
-Call `startMonitoring()` before collecting if you need active platform callbacks. Stop monitoring when the owner is no longer interested in lifecycle updates.
+Lifecycle monitoring starts automatically while `observeAppLifecycle()` or `observeAppStartEvents()` is collected. Use `getCurrentStatus()` when you only need a snapshot.
 
 ## App Info
 

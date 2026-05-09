@@ -2,9 +2,8 @@
   <string name="app_name">kmp-toolkit</string>
 
   <string name="demo_app_lifecycle_title">App lifecycle monitor</string>
-  <string name="demo_app_lifecycle_description">Observe foreground, visibility, and cold/warm start state.</string>
+  <string name="demo_app_lifecycle_description">Observe foreground, visibility, and launch events.</string>
   <string name="demo_app_lifecycle_code"><![CDATA[val monitor = Toolkit.lifecycle()
-monitor.startMonitoring()
 scope.launch {
   monitor.observeAppLifecycle().collect { status ->
     if (status.isInForeground) {
@@ -12,11 +11,15 @@ scope.launch {
     }
   }
 }
-val status = monitor.getCurrentStatus()
-if (status.isFirstLaunch && status.lastStartType == AppStartType.COLD) {
+scope.launch {
+  monitor.observeAppStartEvents().collect { startType ->
+    if (startType == AppStartType.COLD) {
 
+    }
+  }
 }
-monitor.stopMonitoring()]]></string>
+val status = monitor.getCurrentStatus()
+println(status.lastStartType)]]></string>
   <string name="demo_app_info_title">App information</string>
   <string name="demo_app_info_description">Read the app package name, version, and build number.</string>
   <string name="demo_app_info_code"><![CDATA[val info = Toolkit.appInfo()
@@ -198,7 +201,8 @@ keyboardMonitor.stopMonitoring()]]></string>
   <string name="error_format">Error: %1$s</string>
   <string name="result_format">Result: %1$s</string>
 
-  <string name="app_lifecycle_status_format">Foreground: %1$s, visible: %2$s, first launch: %3$s, cold starts: %4$s, warm starts: %5$s, latest type: %6$s</string>
+  <string name="app_lifecycle_status_format">Foreground: %1$s, visible: %2$s, cold starts: %3$s, warm starts: %4$s, latest type: %5$s</string>
+  <string name="app_lifecycle_event_format">Latest launch event: %1$s</string>
 
   <string name="action_read_app_info">Read app info</string>
   <string name="app_info_package_name">Package name</string>

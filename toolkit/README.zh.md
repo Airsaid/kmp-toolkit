@@ -43,11 +43,10 @@ class DemoApp : Application() {
 
 ## 应用生命周期
 
-使用 `Toolkit.lifecycle()` 在共享代码中监听前后台状态与启动类型。
+使用 `Toolkit.lifecycle()` 在共享代码中监听前后台状态与启动事件。
 
 ```kotlin
 val monitor = Toolkit.lifecycle()
-monitor.startMonitoring()
 
 scope.launch {
   monitor.observeAppLifecycle().collect { status ->
@@ -57,15 +56,19 @@ scope.launch {
   }
 }
 
-val status = monitor.getCurrentStatus()
-if (status.isFirstLaunch && status.lastStartType == AppStartType.COLD) {
-  // 执行首次启动初始化。
+scope.launch {
+  monitor.observeAppStartEvents().collect { startType ->
+    if (startType == AppStartType.COLD) {
+      // 执行冷启动初始化。
+    }
+  }
 }
 
-monitor.stopMonitoring()
+val status = monitor.getCurrentStatus()
+println(status.lastStartType)
 ```
 
-如果需要接收平台回调，请先调用 `startMonitoring()` 再订阅。调用方不再需要生命周期更新时应停止监听。
+订阅 `observeAppLifecycle()` 或 `observeAppStartEvents()` 时会自动开始监听；只需要快照时可直接调用 `getCurrentStatus()`。
 
 ## 应用信息
 

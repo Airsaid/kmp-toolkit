@@ -8,28 +8,28 @@ import android.content.Context
  */
 internal actual object AppLifecycleMonitorFactory {
 
-  private var application: Application? = null
+  private var isInitialized: Boolean = false
 
   /**
    * Must be initialized with an Android [Context] before creating [AppLifecycleMonitor] instances.
    */
   internal fun initialize(context: Context) {
-    val app = context.applicationContext as? Application
-      ?: throw IllegalStateException(
-        "AppLifecycleMonitorFactory requires an Application context on Android."
-      )
-    application = app
+    context.applicationContext as? Application ?: throw IllegalStateException(
+      "AppLifecycleMonitorFactory requires an Application context on Android."
+    )
+    isInitialized = true
   }
 
   /**
    * Creates a [AppLifecycleMonitor] instance using the previously initialized context.
    */
   actual fun create(): AppLifecycleMonitor {
-    val app = application
-      ?: throw IllegalStateException(
+    if (!isInitialized) {
+      throw IllegalStateException(
         "AppLifecycleMonitorFactory must be initialized with Context on Android. " +
-            "Call Toolkit.initialize(context) first."
+          "Call Toolkit.initialize(context) first."
       )
-    return AppLifecycleMonitorImpl(app)
+    }
+    return AppLifecycleMonitorImpl()
   }
 }
