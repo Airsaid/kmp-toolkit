@@ -16,12 +16,15 @@ actual object Toolkit {
   private var appNavigator: AppNavigator? = null
   private var fileToolkit: FileToolkit? = null
   private var sensorToolkit: SensorToolkit? = null
+  private var appDirectoryProvider: AppDirectoryProvider? = null
+  private var appConfigReader: AppConfigReader? = null
 
   actual fun initialize(context: ToolkitContext) {
     if (isInitialized) {
       return
     }
     val applicationContext = context.applicationContext ?: context
+    AppDirectoryProviderFactory.initialize(applicationContext)
     AppInfoProvider.initialize(applicationContext)
     ActivityLifecycleRegistry.initialize(applicationContext)
     AppLifecycleMonitorFactory.initialize(applicationContext)
@@ -34,6 +37,7 @@ actual object Toolkit {
     ShareToolkitFactory.initialize(applicationContext)
     FileToolkitFactory.initialize(applicationContext)
     SensorToolkitFactory.initialize(applicationContext)
+    AppConfigReaderFactory.initialize(applicationContext)
     isInitialized = true
   }
 
@@ -72,6 +76,20 @@ actual object Toolkit {
   actual fun appInfo(): AppInfo {
     ensureInitialized()
     return AppInfoProvider.getAppInfo()
+  }
+
+  actual fun appDirectories(): AppDirectoryProvider {
+    ensureInitialized()
+    return cached(appDirectoryProvider, AppDirectoryProviderFactory::create) {
+      appDirectoryProvider = it
+    }
+  }
+
+  actual fun appConfig(): AppConfigReader {
+    ensureInitialized()
+    return cached(appConfigReader, AppConfigReaderFactory::create) {
+      appConfigReader = it
+    }
   }
 
   actual fun deviceInfo(): DeviceInfo {

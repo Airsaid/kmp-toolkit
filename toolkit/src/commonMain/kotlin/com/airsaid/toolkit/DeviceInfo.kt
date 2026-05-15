@@ -53,6 +53,25 @@ data class DeviceTypeInfo(
 )
 
 /**
+ * Represents device CPU information.
+ */
+enum class CpuArchitecture {
+  ARM64,
+  ARM32,
+  X64,
+  X86,
+  UNKNOWN
+}
+
+/**
+ * Represents device CPU information.
+ */
+data class CpuInfo(
+  val architecture: CpuArchitecture = CpuArchitecture.UNKNOWN,
+  val coreCount: Int? = null,
+)
+
+/**
  * Represents display metrics and orientation information.
  *
  * @property widthPx Display width in pixels.
@@ -97,6 +116,7 @@ data class TimeZoneInfo(
  * @property screen Platform main screen snapshot metrics.
  * @property timeZone Current time zone details.
  * @property locale Current and preferred locale information.
+ * @property cpu CPU architecture and core count when available.
  */
 data class DeviceInfo(
   val deviceModel: String,
@@ -109,6 +129,7 @@ data class DeviceInfo(
   val screen: DisplayInfo,
   val timeZone: TimeZoneInfo,
   val locale: LocaleBundle,
+  val cpu: CpuInfo = CpuInfo(),
 )
 
 /**
