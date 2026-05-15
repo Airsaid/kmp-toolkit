@@ -59,48 +59,28 @@ private class AndroidAppConfigReader(
     key: String,
     defaultValue: Boolean?,
   ): Boolean? {
-    val value = metadata?.rawValue(key)
-    return when (value) {
-      is Boolean -> value
-      is String -> value.toBooleanStrictOrNull()
-      else -> defaultValue
-    }
+    return parseAppConfigBoolean(metadata?.rawValue(key), defaultValue)
   }
 
   override fun readInt(
     key: String,
     defaultValue: Int?,
   ): Int? {
-    val value = metadata?.rawValue(key)
-    return when (value) {
-      is Number -> value.toInt()
-      is String -> value.toIntOrNull()
-      else -> defaultValue
-    }
+    return parseAppConfigInt(metadata?.rawValue(key), defaultValue)
   }
 
   override fun readLong(
     key: String,
     defaultValue: Long?,
   ): Long? {
-    val value = metadata?.rawValue(key)
-    return when (value) {
-      is Number -> value.toLong()
-      is String -> value.toLongOrNull()
-      else -> defaultValue
-    }
+    return parseAppConfigLong(metadata?.rawValue(key), defaultValue)
   }
 
   override fun readFloat(
     key: String,
     defaultValue: Float?,
   ): Float? {
-    val value = metadata?.rawValue(key)
-    return when (value) {
-      is Number -> value.toFloat()
-      is String -> value.toFloatOrNull()
-      else -> defaultValue
-    }
+    return parseAppConfigFloat(metadata?.rawValue(key), defaultValue)
   }
 }
 

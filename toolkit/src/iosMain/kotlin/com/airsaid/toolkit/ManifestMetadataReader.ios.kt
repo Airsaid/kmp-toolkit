@@ -25,10 +25,8 @@ private object IosAppConfigReader : AppConfigReader {
   ): Boolean? {
     val value = NSBundle.mainBundle.objectForInfoDictionaryKey(key)
     return when (value) {
-      is Boolean -> value
       is NSNumber -> value.boolValue
-      is String -> value.toBooleanStrictOrNull()
-      else -> defaultValue
+      else -> parseAppConfigBoolean(value, defaultValue)
     }
   }
 
@@ -39,9 +37,7 @@ private object IosAppConfigReader : AppConfigReader {
     val value = NSBundle.mainBundle.objectForInfoDictionaryKey(key)
     return when (value) {
       is NSNumber -> value.intValue
-      is Number -> value.toInt()
-      is String -> value.toIntOrNull()
-      else -> defaultValue
+      else -> parseAppConfigInt(value, defaultValue)
     }
   }
 
@@ -52,9 +48,7 @@ private object IosAppConfigReader : AppConfigReader {
     val value = NSBundle.mainBundle.objectForInfoDictionaryKey(key)
     return when (value) {
       is NSNumber -> value.longLongValue
-      is Number -> value.toLong()
-      is String -> value.toLongOrNull()
-      else -> defaultValue
+      else -> parseAppConfigLong(value, defaultValue)
     }
   }
 
@@ -65,9 +59,7 @@ private object IosAppConfigReader : AppConfigReader {
     val value = NSBundle.mainBundle.objectForInfoDictionaryKey(key)
     return when (value) {
       is NSNumber -> value.floatValue
-      is Number -> value.toFloat()
-      is String -> value.toFloatOrNull()
-      else -> defaultValue
+      else -> parseAppConfigFloat(value, defaultValue)
     }
   }
 }
