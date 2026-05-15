@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1](https://github.com/Airsaid/kmp-toolkit/compare/v0.2.0...v0.2.1) (2026-05-15)
+
+
+### Bug Fixes
+
+* add release automation ([495a3df](https://github.com/Airsaid/kmp-toolkit/commit/495a3dfae2c683e5b69ae5f850213bd104b3d963))
+
 ## [Unreleased]
 
 ## [0.2.0]
