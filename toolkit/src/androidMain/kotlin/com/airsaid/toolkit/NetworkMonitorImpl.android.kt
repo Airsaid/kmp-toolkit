@@ -127,7 +127,9 @@ internal class NetworkMonitorImpl(
       }
 
       override fun onLost(network: Network) {
-        statusState.value = NetworkStatus(isConnected = false)
+        statusState.value = NetworkStatus(
+          isConnected = false,
+        )
       }
 
       override fun onCapabilitiesChanged(
@@ -158,4 +160,5 @@ internal class NetworkMonitorImpl(
   private fun updateStatus(capabilities: NetworkCapabilities?) {
     statusState.value = capabilities.toNetworkStatus()
   }
+
 }

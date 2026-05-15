@@ -75,7 +75,9 @@ internal class NetworkMonitorImpl : NetworkMonitor {
         if (!resumed) {
           resumed = true
           val status = path?.let { getNetworkStatus(it) }
-            ?: NetworkStatus(isConnected = false)
+            ?: NetworkStatus(
+              isConnected = false,
+            )
 
           nw_path_monitor_cancel(tempMonitor)
           continuation.resume(status)
@@ -106,7 +108,9 @@ internal class NetworkMonitorImpl : NetworkMonitor {
     monitor = newMonitor
     val updateHandler: nw_path_monitor_update_handler_t = { path ->
       val status = path?.let { getNetworkStatus(it) }
-        ?: NetworkStatus(isConnected = false)
+        ?: NetworkStatus(
+          isConnected = false,
+        )
       statusState.value = status
     }
 
@@ -163,7 +167,9 @@ internal class NetworkMonitorImpl : NetworkMonitor {
         transports = transports,
       )
     } catch (e: Exception) {
-      NetworkStatus(isConnected = false)
+      NetworkStatus(
+        isConnected = false,
+      )
     }
   }
 

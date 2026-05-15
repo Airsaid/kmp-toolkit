@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.graphics.Rect
 import android.os.Build
 import androidx.window.layout.WindowMetricsCalculator
+import java.io.File
 import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.roundToInt
@@ -70,6 +71,10 @@ internal actual object DeviceInfoProvider {
       locale = LocaleBundle(
         current = currentLocale,
         preferred = preferredLocales,
+      ),
+      cpu = CpuInfo(
+        architecture = resolveCpuArchitecture(),
+        coreCount = resolveCpuCoreCount(),
       ),
     )
   }
@@ -175,5 +180,43 @@ private fun isEmulator(): Boolean {
     model.contains("Android SDK built for x86", ignoreCase = true) ||
     manufacturer.contains("Genymotion", ignoreCase = true) ||
     (brand.startsWith("generic") && device.startsWith("generic")) ||
-    product.contains("sdk_gphone", ignoreCase = true)
+    product.contains("sdk_gphone", ignoreCase = true) ||
+    product.contains("vbox", ignoreCase = true)
+}
+
+private fun resolveCpuArchitecture(): CpuArchitecture {
+  return try {
+    val raw = Build.SUPPORTED_ABIS.firstOrNull()
+      ?: System.getProperty("os.arch")
+      ?: return CpuArchitecture.UNKNOWN
+    when (raw.lowercase()) {
+      "arm64-v8a",
+      "aarch64",
+      -> CpuArchitecture.ARM64
+      "armeabi-v7a",
+      "armeabi",
+      "arm",
+      -> CpuArchitecture.ARM32
+      "x86_64",
+      "amd64",
+      -> CpuArchitecture.X64
+      "x86",
+      "i386",
+      "i686",
+      -> CpuArchitecture.X86
+      else -> CpuArchitecture.UNKNOWN
+    }
+  } catch (e: Exception) {
+    CpuArchitecture.UNKNOWN
+  }
+}
+
+private fun resolveCpuCoreCount(): Int? {
+  return try {
+    File("/sys/devices/system/cpu/").listFiles { file ->
+      file.name.matches(Regex("cpu[0-9]+"))
+    }?.size?.takeIf { it > 0 } ?: Runtime.getRuntime().availableProcessors()
+  } catch (e: Exception) {
+    Runtime.getRuntime().availableProcessors()
+  }.takeIf { it > 0 }
 }

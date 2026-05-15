@@ -61,3 +61,18 @@ internal actual object AppInfoProvider {
     )
   }
 }
+
+private fun PackageManager.getCurrentPackageInfo(
+  packageName: String,
+): android.content.pm.PackageInfo? {
+  return try {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
+    } else {
+      @Suppress("DEPRECATION")
+      getPackageInfo(packageName, 0)
+    }
+  } catch (e: PackageManager.NameNotFoundException) {
+    null
+  }
+}

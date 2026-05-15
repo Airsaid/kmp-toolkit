@@ -80,10 +80,19 @@ println(info.packageName)
 println(info.appName)
 println(info.versionName)
 println(info.buildNumber)
+
+val directories = Toolkit.appDirectories()
+println(directories.getDirectories().cacheDir)
+println(directories.getDirectories().documentsDir)
+println(directories.resolvePath(AppDirectoryKind.DOCUMENTS, "images"))
+directories.createDirectory(AppDirectoryKind.CACHE, "avatars")
+
+val channel = Toolkit.appConfig().readString("channel")
 ```
 
 On Android, `packageName` is the application id. On iOS, it is the bundle identifier.
 `appName`, `versionName`, and `buildNumber` are nullable when the platform metadata is unavailable.
+App directories expose only cross-platform cache and documents roots. `appConfig()` reads Android manifest meta-data and iOS Info.plist values.
 
 ## Device Info
 
@@ -115,6 +124,8 @@ println(device.locale.current.languageCode)
 println(device.locale.current.scriptCode)
 println(device.locale.current.regionCode)
 println(device.locale.preferred)
+println(device.cpu.architecture)
+println(device.cpu.coreCount)
 ```
 
 `window` is the current foreground app/window viewport when available. `screen` is a platform main screen snapshot. `widthLogical` and `heightLogical` are Android dp and iOS points. Device type and emulator flags are heuristics; do not use them for layout breakpoints, security, licensing, or anti-abuse checks.

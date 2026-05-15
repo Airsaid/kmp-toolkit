@@ -3,6 +3,10 @@
 package com.airsaid.toolkit
 
 import kotlinx.cinterop.CValue
+import kotlinx.cinterop.alloc
+import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.ptr
+import kotlinx.cinterop.toKString
 import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGRect
 import platform.Foundation.NSLocale
@@ -17,6 +21,8 @@ import platform.UIKit.UIDevice
 import platform.UIKit.UIScreen
 import platform.UIKit.UIUserInterfaceIdiomPad
 import platform.UIKit.UIView
+import platform.posix.uname
+import platform.posix.utsname
 import kotlin.math.roundToInt
 
 /**
@@ -62,6 +68,10 @@ internal actual object DeviceInfoProvider {
         current = currentLocale,
         preferred = preferredLocales,
       ),
+      cpu = CpuInfo(
+        architecture = resolveCpuArchitecture(),
+        coreCount = NSProcessInfo.processInfo.processorCount.toInt(),
+      ),
     )
   }
 }
@@ -104,4 +114,30 @@ private fun isSimulator(): Boolean {
   val environment = NSProcessInfo.processInfo.environment
   return environment["SIMULATOR_DEVICE_NAME"] != null ||
     environment["SIMULATOR_MODEL_IDENTIFIER"] != null
+}
+
+private fun resolveCpuArchitecture(): CpuArchitecture {
+  return memScoped {
+    val systemInfo = alloc<utsname>()
+    if (uname(systemInfo.ptr) != 0) {
+      return@memScoped CpuArchitecture.UNKNOWN
+    }
+    when (systemInfo.machine.toKString().lowercase()) {
+      "arm64",
+      "arm64e",
+      "aarch64",
+      -> CpuArchitecture.ARM64
+      "armv7",
+      "armv7s",
+      -> CpuArchitecture.ARM32
+      "x86_64",
+      "amd64",
+      -> CpuArchitecture.X64
+      "i386",
+      "i686",
+      "x86",
+      -> CpuArchitecture.X86
+      else -> CpuArchitecture.UNKNOWN
+    }
+  }
 }

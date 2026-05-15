@@ -30,4 +30,5 @@ class AppInfoTest {
     assertEquals("1.0.0", info.versionName)
     assertEquals("100", info.buildNumber)
   }
+
 }

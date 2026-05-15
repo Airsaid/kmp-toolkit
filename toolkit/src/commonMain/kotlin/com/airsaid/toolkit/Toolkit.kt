@@ -59,6 +59,16 @@ expect object Toolkit {
   fun appInfo(): AppInfo
 
   /**
+   * Returns app-owned directory helpers.
+   */
+  fun appDirectories(): AppDirectoryProvider
+
+  /**
+   * Returns the packaged app configuration reader.
+   */
+  fun appConfig(): AppConfigReader
+
+  /**
    * Returns the current device metadata snapshot.
    */
   fun deviceInfo(): DeviceInfo

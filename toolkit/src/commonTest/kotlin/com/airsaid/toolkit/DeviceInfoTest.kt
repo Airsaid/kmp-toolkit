@@ -1,6 +1,7 @@
 package com.airsaid.toolkit
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class DeviceInfoTest {
@@ -42,5 +43,21 @@ class DeviceInfoTest {
 
     assertNull(deviceInfo.systemVersionCode)
     assertNull(deviceInfo.window)
+    assertEquals(CpuArchitecture.UNKNOWN, deviceInfo.cpu.architecture)
+    assertNull(deviceInfo.cpu.coreCount)
+  }
+
+  @Test
+  fun cpuArchitectureUsesNormalizedCrossPlatformValues() {
+    assertEquals(
+      listOf(
+        CpuArchitecture.ARM64,
+        CpuArchitecture.ARM32,
+        CpuArchitecture.X64,
+        CpuArchitecture.X86,
+        CpuArchitecture.UNKNOWN,
+      ),
+      CpuArchitecture.entries,
+    )
   }
 }

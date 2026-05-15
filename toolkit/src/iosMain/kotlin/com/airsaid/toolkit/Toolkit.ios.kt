@@ -13,6 +13,8 @@ actual object Toolkit {
   private var appNavigator: AppNavigator? = null
   private var fileToolkit: FileToolkit? = null
   private var sensorToolkit: SensorToolkit? = null
+  private var appDirectoryProvider: AppDirectoryProvider? = null
+  private var appConfigReader: AppConfigReader? = null
 
   actual fun initialize(context: ToolkitContext) {
   }
@@ -45,6 +47,18 @@ actual object Toolkit {
 
   actual fun appInfo(): AppInfo {
     return AppInfoProvider.getAppInfo()
+  }
+
+  actual fun appDirectories(): AppDirectoryProvider {
+    return cached(appDirectoryProvider, AppDirectoryProviderFactory::create) {
+      appDirectoryProvider = it
+    }
+  }
+
+  actual fun appConfig(): AppConfigReader {
+    return cached(appConfigReader, AppConfigReaderFactory::create) {
+      appConfigReader = it
+    }
   }
 
   actual fun deviceInfo(): DeviceInfo {
