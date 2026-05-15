@@ -13,7 +13,7 @@
             android:name=".ShareTargetSelectedReceiver"
             android:exported="false" />
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="com.airsaid.toolkit.ToolkitFileProvider"
             android:authorities="${applicationId}.toolkit-clipboard"
             android:exported="false"
             android:grantUriPermissions="true">
